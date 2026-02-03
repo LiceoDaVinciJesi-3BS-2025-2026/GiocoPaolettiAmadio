@@ -2,8 +2,8 @@ def main() -> None:
     import pygame
 
     pygame.init()
-    SCREEN_WIDTH = 1400
-    SCREEN_HEIGHT = 800
+    SCREEN_WIDTH = 1280
+    SCREEN_HEIGHT = 656
     screen = pygame.display.set_mode( (SCREEN_WIDTH, SCREEN_HEIGHT) )
     pygame.display.set_caption("Il mio primo gioco con Sebotto!")
     # posizione iniziale
@@ -62,3 +62,5 @@ def main() -> None:
         pygame.display.flip()
 
     pygame.quit()
+
+main()
