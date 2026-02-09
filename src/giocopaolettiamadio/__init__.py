@@ -70,15 +70,19 @@ def main() -> None:
     # LOOP PRINCIPALE
     running = True
     while running:
+        #gestione tempo
         clock.tick(60)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
+        
+        #contenitore di tutti i tasti premuti
         keys = pygame.key.get_pressed()
+        #pulsanti corsa
         is_running = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-
+        
+        #calcolo velocità
         if is_running:
             speed = SPEED_RUN
         else:
@@ -123,7 +127,8 @@ def main() -> None:
         pygame.display.flip()
 
     pygame.quit()
+    
+    #interrompe lo script in modo più pulito
     sys.exit()
-
 
 main()
