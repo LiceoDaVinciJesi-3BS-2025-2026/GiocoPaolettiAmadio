@@ -62,9 +62,19 @@ def main() -> None:
         return frames
     
     # FRAME ANIMAZIONI
-    frames_idle = load_frames(sheet_idle)
-    frames_idle = rescale_frames(frames_idle)
+    frames_idle_right = load_frames(sheet_idle)
+    frames_idle_right = rescale_frames(frames_idle_right)
 
+    frames_idle_left = []
+
+    flip_x = True
+    flip_y = False
+
+    for frame in frames_idle_right:
+        flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
+        frames_idle_left.append(flipped_frame)
+        
+        
     frames_walk_up = load_frames(sheet_up)
     frames_walk_up = rescale_frames(frames_walk_up)
     frames_walk_down = load_frames(sheet_down)
@@ -74,9 +84,6 @@ def main() -> None:
     
 
     frames_walk_left = []
-
-    flip_x = True
-    flip_y = False
 
     for frame in frames_walk_right:
         flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
@@ -93,9 +100,6 @@ def main() -> None:
 
     frames_run_left = []
 
-    flip_x = True
-    flip_y = False
-
     for frame in frames_run_right:
         flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
         frames_run_left.append(flipped_frame)
@@ -103,9 +107,11 @@ def main() -> None:
 
     # STATO PERSONAGGIO
     x, y = SCREEN_W // 2, SCREEN_H // 2
-    current_frames = frames_idle
+    current_frames = frames_idle_right
     frame_index = 0
-
+    side_pg = 'R'
+    
+    
     # LOOP PRINCIPALE
     running = True
     while running:
@@ -143,6 +149,7 @@ def main() -> None:
                 current_frames = frames_walk_down
 
         elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+            side_pg = 'R'
             x += speed
             if is_running:
                  current_frames = frames_run_right
@@ -150,6 +157,7 @@ def main() -> None:
                 current_frames = frames_walk_right
 
         elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
+            side_pg = 'L'
             x -= speed
             if is_running:
                  current_frames = frames_run_left
@@ -158,7 +166,10 @@ def main() -> None:
                 current_frames = frames_walk_left
 
         else:
-            current_frames = frames_idle
+            if side_pg == 'R':
+                current_frames = frames_idle_right
+            else:
+                current_frames = frames_idle_left
 
         # ANIMAZIONE
         anim_speed = ANIM_SPEED
