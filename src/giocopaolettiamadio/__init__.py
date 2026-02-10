@@ -57,16 +57,30 @@ def main() -> None:
     frames_walk_right = load_frames(sheet_right)
     frames_walk_left = []
 
+    frames_walk_left = []
+
+    flip_x = True
+    flip_y = False
+
     for frame in frames_walk_right:
-        frames_walk_left.append(pygame.transform.flip(frame, True, False))
+        flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
+        frames_walk_left.append(flipped_frame)
+
 
     frames_run_up = load_frames(sheet_run_up)
     frames_run_down = load_frames(sheet_run_down)
     frames_run_right = load_frames(sheet_run_right)
     frames_run_left = []
 
+    frames_run_left = []
+
+    flip_x = True
+    flip_y = False
+
     for frame in frames_run_right:
-        frames_run_left.append(pygame.transform.flip(frame, True, False))
+        flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
+        frames_run_left.append(flipped_frame)
+
 
     # STATO PERSONAGGIO
     x, y = SCREEN_W // 2, SCREEN_H // 2
@@ -97,25 +111,42 @@ def main() -> None:
         # MOVIMENTO + ANIMAZIONE
         if keys[pygame.K_w] or keys[pygame.K_UP]:
             y -= speed
-            current_frames = frames_run_up if is_running else frames_walk_up
+            if is_running:
+                current_frames = frames_run_up 
+            else:
+                current_frames = frames_walk_up
 
         elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
             y += speed
-            current_frames = frames_run_down if is_running else frames_walk_down
+            if is_running:
+                current_frames = frames_run_down
+            else:
+                current_frames = frames_walk_down
 
         elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
             x += speed
-            current_frames = frames_run_right if is_running else frames_walk_right
+            if is_running:
+                 current_frames = frames_run_right
+            else:
+                current_frames = frames_walk_right
 
         elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
             x -= speed
-            current_frames = frames_run_left if is_running else frames_walk_left
+            if is_running:
+                 current_frames = frames_run_left
+                 
+            else:
+                current_frames = frames_walk_left
 
         else:
             current_frames = frames_idle
 
         # ANIMAZIONE
-        anim_speed = ANIM_SPEED * (2 if is_running else 1)
+        anim_speed = ANIM_SPEED
+
+        if is_running:
+            anim_speed = ANIM_SPEED * 2
+
         frame_index += anim_speed
 
         if frame_index >= len(current_frames):
