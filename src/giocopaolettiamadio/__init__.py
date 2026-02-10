@@ -48,14 +48,30 @@ def main() -> None:
                 frames.append(sheet.subsurface(rect))
 
         return frames
-
+    
+    #funzione ridimensiona frames
+    def rescale_frames(lista_frames):
+        frames = []
+        
+        for frame in lista_frames:
+            w, h = frame.get_size()
+            fattore = 0.5
+            frame = pygame.transform.scale(frame, (int(w*fattore), int(h*fattore)))
+            frames.append(frame)
+         
+        return frames
+    
     # FRAME ANIMAZIONI
     frames_idle = load_frames(sheet_idle)
+    frames_idle = rescale_frames(frames_idle)
 
     frames_walk_up = load_frames(sheet_up)
+    frames_walk_up = rescale_frames(frames_walk_up)
     frames_walk_down = load_frames(sheet_down)
+    frames_walk_down= rescale_frames(frames_walk_down)
     frames_walk_right = load_frames(sheet_right)
-    frames_walk_left = []
+    frames_walk_right = rescale_frames(frames_walk_right)
+    
 
     frames_walk_left = []
 
@@ -68,9 +84,12 @@ def main() -> None:
 
 
     frames_run_up = load_frames(sheet_run_up)
+    frames_run_up = rescale_frames(frames_run_up)
     frames_run_down = load_frames(sheet_run_down)
+    frames_run_down = rescale_frames(frames_run_down)
     frames_run_right = load_frames(sheet_run_right)
-    frames_run_left = []
+    frames_run_right = rescale_frames(frames_run_right)
+    
 
     frames_run_left = []
 
