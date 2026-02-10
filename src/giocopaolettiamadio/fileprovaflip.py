@@ -83,39 +83,32 @@ def main() -> None:
         flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
         frames_run_left.append(flipped_frame)
 
-    # --- CARICAMENTO SPRITE FENICE ---
-    # Assumiamo che la fenice abbia una sprite sheet orizzontale di 4 frame, 24*16 dimensioni
+    # --- CARICAMENTO SPRITE FENICE (INGRANDITA) ---
     phoenix_sheet = []
+    scale_factor_phoenix = 3  # ingrandimento della fenice
+
     for num in range(1,5):
         phoenix_a = pygame.image.load(f"{num}rett.png").convert_alpha()
+        w, h = phoenix_a.get_size()
+        phoenix_a = pygame.transform.scale(phoenix_a, (w * scale_factor_phoenix, h * scale_factor_phoenix))
         phoenix_sheet.append(phoenix_a)
-#         
-#     PHOENIX_FRAME_WIDTH = 24
-#     PHOENIX_FRAME_HEIGHT = 16
-#     PHOENIX_FRAME_COUNT = 4
-# 
-#     frames_phoenix = []
-#     for i in range(PHOENIX_FRAME_COUNT):
-#         rect = pygame.Rect(i * PHOENIX_FRAME_WIDTH, 0, PHOENIX_FRAME_WIDTH, PHOENIX_FRAME_HEIGHT)
-#         frame = phoenix_sheet.subsurface(rect)
-#         frames_phoenix.append(frame)
 
-#     # Ridimensioniamo fenice se vuoi (opzionale)
-#     scale_factor_phoenix = 1  # puoi cambiare se vuoi
-#     if scale_factor_phoenix != 1:
-#         frames_phoenix = [pygame.transform.scale(f, (int(PHOENIX_FRAME_WIDTH*scale_factor_phoenix), int(PHOENIX_FRAME_HEIGHT*scale_factor_phoenix))) for f in frames_phoenix]
-# 
+    # <<< AGGIUNTA >>> fenice flippata a sinistra
+    phoenix_sheet_left = []
+    for frame in phoenix_sheet:
+        phoenix_sheet_left.append(pygame.transform.flip(frame, True, False))
+
     # --- STATO PERSONAGGIO SAMURAI ---
     x, y = SCREEN_W // 2, SCREEN_H // 2
     current_frames = frames_idle
     frame_index = 0
 
-#     # --- STATO FENICE ---
-#     phoenix_x = -PHOENIX_FRAME_WIDTH  # parte da fuori schermo a sinistra
-#     phoenix_y = 100                   # altezza fenice
-#     phoenix_speed = 3                 # velocità movimento
+    # --- STATO FENICE ---
     phoenix_frame_index = 0
     phoenix_anim_speed = 0.2
+
+    # <<< AGGIUNTA >>> memoria mouse precedente
+    prev_mouse_x = pygame.mouse.get_pos()[0]
 
     # --- LOOP PRINCIPALE ---
     running = True
@@ -174,17 +167,24 @@ def main() -> None:
         if frame_index >= len(current_frames):
             frame_index = 0
         current_image = current_frames[int(frame_index)]
-
-#         # MOVIMENTO + ANIMAZIONE FENICE
-#         phoenix_x += phoenix_speed
-#         if phoenix_x > SCREEN_W:
-#             phoenix_x = -PHOENIX_FRAME_WIDTH  # torna a partire da sinistra
-# 
+        
+        
+        #ANIMAZIONE DISEGNO
         phoenix_frame_index += phoenix_anim_speed
         if phoenix_frame_index >= len(phoenix_sheet):
             phoenix_frame_index = 0
-        phoenix_image = phoenix_sheet[int(phoenix_frame_index)]
 
+        # <<< AGGIUNTA >>> direzione fenice basata sul movimento del mouse
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
+        if mouse_x < prev_mouse_x:
+            phoenix_image = phoenix_sheet_left[int(phoenix_frame_index)]
+        else:
+            phoenix_image = phoenix_sheet[int(phoenix_frame_index)]
+
+        prev_mouse_x = mouse_x
+        
+        
         # DISEGNO
         screen.blit(backstage, (0,0))
         
@@ -193,6 +193,7 @@ def main() -> None:
 
         # luce mouse
         mouse_pos = pygame.mouse.get_pos()
+        
 
         # fenice
         screen.blit(phoenix_image, mouse_pos)
