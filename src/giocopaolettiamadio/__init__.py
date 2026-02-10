@@ -6,11 +6,12 @@ def main() -> None:
     pygame.init()
 
     # FINESTRA
-    SCREEN_W, SCREEN_H = 1280, 656
+    SCREEN_W, SCREEN_H = 1344, 768
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     pygame.display.set_caption("Samurai + Luce iniziale")
     clock = pygame.time.Clock()
-
+    
+    
     # COSTANTI SPRITE
     COLS = 5
     ROWS = 5
@@ -18,6 +19,11 @@ def main() -> None:
     ANIM_SPEED = 0.15
     SPEED_WALK = 4
     SPEED_RUN = 8
+    
+    #immagine scenario
+    backstage = pygame.image.load("stageDefinitivo.png").convert_alpha()
+    backstage = pygame.transform.scale(backstage,(SCREEN_W,SCREEN_H))
+    
 
     # CARICAMENTO SPRITE SHEET
     sheet_idle = pygame.image.load("Samurai-idle-v1.png").convert_alpha()
@@ -74,7 +80,7 @@ def main() -> None:
         clock.tick(60)
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
         
         #contenitore di tutti i tasti premuti
@@ -118,11 +124,15 @@ def main() -> None:
         current_image = current_frames[int(frame_index)]
 
         # DISEGNO
-        screen.fill((0, 0, 0))
-
+        
+        #scenario
+        screen.blit(backstage,(0,0) )
+        
+        #mouse
         mouse_pos = pygame.mouse.get_pos()
         pygame.draw.circle(screen, "yellow", mouse_pos, 80)
-
+        
+        #pg
         screen.blit(current_image, (x, y))
         pygame.display.flip()
 
