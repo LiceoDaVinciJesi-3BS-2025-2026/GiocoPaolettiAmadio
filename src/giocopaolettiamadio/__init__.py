@@ -174,6 +174,10 @@ def main() -> None:
             frame_index = 0
         current_image = current_frames[int(frame_index)]
         
+        #rettangolo che contiene il samurai
+        samurai_rect = current_image.get_rect(topleft=(x, y))
+        samurai_rect = samurai_rect.inflate(-90, -26)
+        
         # posizione mouse
         mouse_pos = pygame.mouse.get_pos()
         
@@ -195,6 +199,7 @@ def main() -> None:
         screen.blit(backstage, (0,0))
         
         # samurai
+        pygame.draw.rect(screen, (0, 255, 0), samurai_rect) #hitbox
         screen.blit(current_image, (x, y))
 
         
