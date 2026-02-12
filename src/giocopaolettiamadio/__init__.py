@@ -12,14 +12,15 @@ def main() -> None:
     pygame.display.set_caption("Samurai + Luce iniziale + Fenice")
     clock = pygame.time.Clock()
     
-    # COSTANTI SPRITE
+    # COSTANTI SPRITE PERSONAGGIO
     COLS = 5
     ROWS = 5
     FRAME_SIZE = 256
     ANIM_SPEED = 0.15
     SPEED_WALK = 4
     SPEED_RUN = 8
-
+    Side_pg = 'R'
+    
     # --- FUNZIONI DI SUPPORTO ---
 
     def load_frames(sheet):
@@ -54,9 +55,16 @@ def main() -> None:
     sheet_run_down = pygame.image.load("SamuraiRunDowngiusto.png").convert_alpha()
     sheet_run_right = pygame.image.load("SamuraiRunDxgiusto.png").convert_alpha()
 
-    frames_idle = load_frames(sheet_idle)
-    frames_idle = rescale_frames(frames_idle)
-
+    frames_idle_right= load_frames(sheet_idle)
+    frames_idle_right = rescale_frames(frames_idle_right)
+    frames_idle_left = []
+    flip_x = True
+    flip_y = False
+    for frame in frames_idle_right:
+        flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
+        frames_idle_left.append(flipped_frame)
+    
+    
     frames_walk_up = load_frames(sheet_up)
     frames_walk_up = rescale_frames(frames_walk_up)
     frames_walk_down = load_frames(sheet_down)
@@ -65,8 +73,6 @@ def main() -> None:
     frames_walk_right = rescale_frames(frames_walk_right)
 
     frames_walk_left = []
-    flip_x = True
-    flip_y = False
     for frame in frames_walk_right:
         flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
         frames_walk_left.append(flipped_frame)
@@ -95,18 +101,19 @@ def main() -> None:
 
     # --- STATO PERSONAGGIO SAMURAI ---
     x, y = SCREEN_W // 2, SCREEN_H // 2
-    current_frames = frames_idle
+    current_frames = frames_idle_right
     frame_index = 0
 
     # --- STATO FENICE ---
     phoenix_frame_index = 0
     phoenix_anim_speed = 0.2
-
+    Side_phoenix = 'R'
 
 
     # --- LOOP PRINCIPALE ---
     running = True
     while running:
+        Old_mouse_pos = pygame.mouse.get_pos()
         clock.tick(60)
 
         for event in pygame.event.get():
@@ -138,6 +145,7 @@ def main() -> None:
 
         elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
             x += speed
+            Side_pg = 'R'
             if is_running:
                  current_frames = frames_run_right
             else:
@@ -145,13 +153,17 @@ def main() -> None:
 
         elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
             x -= speed
+            Side_pg = 'S'
             if is_running:
                  current_frames = frames_run_left
             else:
                 current_frames = frames_walk_left
 
         else:
-            current_frames = frames_idle
+            if Side_pg == 'R':
+                current_frames = frames_idle_right
+            else:
+                current_frames = frames_idle_left
 
         # ANIMAZIONE SAMURAI
         anim_speed = ANIM_SPEED
@@ -162,24 +174,30 @@ def main() -> None:
             frame_index = 0
         current_image = current_frames[int(frame_index)]
         
+        # posizione mouse
+        mouse_pos = pygame.mouse.get_pos()
         
         #ANIMAZIONE DISEGNO
         phoenix_frame_index += phoenix_anim_speed
         if phoenix_frame_index >= len(phoenix_sheet):
             phoenix_frame_index = 0
         phoenix_image = phoenix_sheet[int(phoenix_frame_index)]
-
-        
-        
-        
+        if mouse_pos > Old_mouse_pos:
+            Side_phoenix = 'R'
+        elif mouse_pos < Old_mouse_pos:
+            Side_phoenix = 'S'
+          
+        if Side_phoenix == 'S':
+            phoenix_image = pygame.transform.flip(phoenix_image, True, False)
+            
+            
         # DISEGNO
         screen.blit(backstage, (0,0))
         
         # samurai
         screen.blit(current_image, (x, y))
 
-        # luce mouse
-        mouse_pos = pygame.mouse.get_pos()
+        
         
 
         # fenice
