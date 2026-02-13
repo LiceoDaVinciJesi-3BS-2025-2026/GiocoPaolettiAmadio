@@ -175,7 +175,7 @@ def main() -> None:
     Side_pg = 'R'
 
     # --- CARICAMENTO SFONDO --- 
-    backstage = pygame.image.load("arena.png").convert_alpha()
+    backstage = pygame.image.load("arenavuota.png").convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
     
     # --- CARICAMENTO SPRITE SAMURAI (CODICE ORIGINALE) ---
