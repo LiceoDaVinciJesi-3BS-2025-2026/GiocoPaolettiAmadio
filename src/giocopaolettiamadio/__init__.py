@@ -235,7 +235,14 @@ def main() -> None:
 
 
  
-
+    
+    # Variabili per Oscuramento
+    oscurita_attuale = 0      
+    velocita_oscuramento = 4  
+    target_oscurita = 255     # Il punto di buio totale
+    
+    #nebbia: divido per la qualità dell'animazione
+    fog_surface = pygame.Surface((SCREEN_W // 16, SCREEN_H // 16))
 
 
 
@@ -252,6 +259,8 @@ def main() -> None:
 
     # --- LOOP PRINCIPALE ---
     running = True
+    night = False
+    scurimento = True
     while running:
         Old_mouse_pos = pygame.mouse.get_pos()
         clock.tick(60)
@@ -259,6 +268,16 @@ def main() -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
+
+        #logica per la notte
+        if scurimento:
+            # Aumentiamo l'oscurità gradualmente fino al target
+            if oscurita_attuale < target_oscurita:
+                oscurita_attuale += velocita_oscuramento
+            elif oscurita_attuale > target_oscurita: 
+                oscurita_attuale = target_oscurita
+                
+
 
         keys = pygame.key.get_pressed()
         is_running = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
@@ -358,12 +377,7 @@ def main() -> None:
         # DISEGNO
         screen.blit(backstage, (0,0))
         
-        #samurai
-        screen.blit(current_image, (x, y))
-
-        # fenice
-        screen.blit(phoenix_image, mouse_pos)
-        
+        #mostri
         # slime
         screen.blit(slime_image, (600, 300))
         
@@ -372,6 +386,26 @@ def main() -> None:
         
         # arch demon
         screen.blit(demon_image, (demon_x, demon_y))
+        
+        # Prepariamo la maschera di oscurità
+        fog_surface.fill((0, 0, 0))          # Riempiamo di nero
+        fog_surface.set_alpha(oscurita_attuale) # Applichiamo il livello di buio attuale
+        
+        pygame.draw.circle(fog_surface, (255, 255, 255), ((mouse_pos[0] + 24) // 16, (mouse_pos[1] + 16) // 16), 7)
+        
+        # Applichiamo la nebbia sopra il gioco: la ridimensiono all'origine
+        screen.blit(pygame.transform.scale(fog_surface, (SCREEN_W, SCREEN_H)), (0, 0))
+    
+
+        #samurai
+        screen.blit(current_image, (x, y))
+
+        # fenice
+        screen.blit(phoenix_image, mouse_pos)
+        
+        
+        #trasparenza del cerchio di luce
+        fog_surface.set_colorkey((255, 255, 255))
         
         # aggiorna schermo
         pygame.display.flip()
