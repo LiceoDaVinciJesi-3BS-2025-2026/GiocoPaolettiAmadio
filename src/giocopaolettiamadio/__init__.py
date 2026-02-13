@@ -30,6 +30,7 @@ def main() -> None:
                 x = col * FRAME_SIZE
                 y = row * FRAME_SIZE
                 rect = pygame.Rect(x, y, FRAME_SIZE, FRAME_SIZE)
+                #ritaglio una superficie dell'intero foglio
                 frames.append(sheet.subsurface(rect))
         return frames
 
