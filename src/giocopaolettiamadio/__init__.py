@@ -12,18 +12,11 @@ def main() -> None:
     pygame.display.set_caption("Samurai + Luce iniziale + Fenice")
     clock = pygame.time.Clock()
     
-    # COSTANTI SPRITE PERSONAGGIO
-    COLS = 5
-    ROWS = 5
-    FRAME_SIZE = 256
-    ANIM_SPEED = 0.15
-    SPEED_WALK = 4
-    SPEED_RUN = 8
-    Side_pg = 'R'
+    
     
     # --- FUNZIONI DI SUPPORTO ---
 
-    def load_frames(sheet):
+    def load_frames(sheet, ROWS, COLS, FRAME_SIZE):
         frames = []
         for row in range(ROWS):
             for col in range(COLS):
@@ -34,19 +27,30 @@ def main() -> None:
                 frames.append(sheet.subsurface(rect))
         return frames
 
-    def rescale_frames(lista_frames):
+    def rescale_frames(lista_frames, fattore):
         frames = []
         for frame in lista_frames:
             w, h = frame.get_size()
-            fattore = 0.5
             frame = pygame.transform.scale(frame, (int(w*fattore), int(h*fattore)))
             frames.append(frame)
         return frames
+           
+    
+    
+    # COSTANTI SPRITE PERSONAGGIO
+    COLS_samurai = 5
+    ROWS_samurai = 5
+    FRAME_SIZE_samurai = 256
+    ANIM_SPEED = 0.15
+    SPEED_WALK = 4
+    SPEED_RUN = 8
+    Side_pg = 'R'
 
-    # --- CARICAMENTO SPRITE SAMURAI ---
+    # --- CARICAMENTO SFONDO --- 
     backstage = pygame.image.load("stageDefinitivo.png").convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
-
+    
+    # --- CARICAMENTO SPRITE SAMURAI ---
     sheet_idle = pygame.image.load("Samurai-idle-v1.png").convert_alpha()
     sheet_up = pygame.image.load("SamuraiUpgiusto.png").convert_alpha()
     sheet_down = pygame.image.load("SamuraiDowngiusto.png").convert_alpha()
@@ -56,8 +60,8 @@ def main() -> None:
     sheet_run_down = pygame.image.load("SamuraiRunDowngiusto.png").convert_alpha()
     sheet_run_right = pygame.image.load("SamuraiRunDxgiusto.png").convert_alpha()
 
-    frames_idle_right= load_frames(sheet_idle)
-    frames_idle_right = rescale_frames(frames_idle_right)
+    frames_idle_right= load_frames(sheet_idle, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
+    frames_idle_right = rescale_frames(frames_idle_right, 0.5)
     frames_idle_left = []
     flip_x = True
     flip_y = False
@@ -66,24 +70,24 @@ def main() -> None:
         frames_idle_left.append(flipped_frame)
     
     
-    frames_walk_up = load_frames(sheet_up)
-    frames_walk_up = rescale_frames(frames_walk_up)
-    frames_walk_down = load_frames(sheet_down)
-    frames_walk_down= rescale_frames(frames_walk_down)
-    frames_walk_right = load_frames(sheet_right)
-    frames_walk_right = rescale_frames(frames_walk_right)
+    frames_walk_up = load_frames(sheet_up, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
+    frames_walk_up = rescale_frames(frames_walk_up, 0.5)
+    frames_walk_down = load_frames(sheet_down, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
+    frames_walk_down = rescale_frames(frames_walk_down, 0.5)
+    frames_walk_right = load_frames(sheet_right, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
+    frames_walk_right = rescale_frames(frames_walk_right, 0.5)
 
     frames_walk_left = []
     for frame in frames_walk_right:
         flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
         frames_walk_left.append(flipped_frame)
 
-    frames_run_up = load_frames(sheet_run_up)
-    frames_run_up = rescale_frames(frames_run_up)
-    frames_run_down = load_frames(sheet_run_down)
-    frames_run_down = rescale_frames(frames_run_down)
-    frames_run_right = load_frames(sheet_run_right)
-    frames_run_right = rescale_frames(frames_run_right)
+    frames_run_up = load_frames(sheet_run_up, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
+    frames_run_up = rescale_frames(frames_run_up, 0.5)
+    frames_run_down = load_frames(sheet_run_down, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
+    frames_run_down = rescale_frames(frames_run_down, 0.5)
+    frames_run_right = load_frames(sheet_run_right, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
+    frames_run_right = rescale_frames(frames_run_right, 0.5)
 
     frames_run_left = []
     for frame in frames_run_right:
@@ -100,6 +104,23 @@ def main() -> None:
         phoenix_a = pygame.transform.scale(phoenix_a, (w * scale_factor_phoenix, h * scale_factor_phoenix))
         phoenix_sheet.append(phoenix_a)
 
+
+    # --- CARICAMENTO SPRITE SLIME ---
+    sheet_slime = pygame.image.load('SlimeSpriteSheet.png').convert_alpha()
+    COLS_slime = 4
+    ROWS_slime = 1
+    FRAME_SIZE_slime = 32    
+    slime_idle = load_frames(sheet_slime, ROWS_slime, COLS_slime, FRAME_SIZE_slime)
+    slime_idle = rescale_frames(slime_idle, 2)
+    slime_frame_index = 0
+    slime_anim_speed = 0.10
+    
+
+    
+
+
+
+
     # --- STATO PERSONAGGIO SAMURAI ---
     x, y = SCREEN_W // 2, SCREEN_H // 2
     current_frames = frames_idle_right
@@ -107,7 +128,7 @@ def main() -> None:
 
     # --- STATO FENICE ---
     phoenix_frame_index = 0
-    phoenix_anim_speed = 0.2
+    phoenix_anim_speed = 0.15
     Side_phoenix = 'R'
 
 
@@ -182,11 +203,13 @@ def main() -> None:
         # posizione mouse
         mouse_pos = pygame.mouse.get_pos()
         
-        #ANIMAZIONE DISEGNO
+        #ANIMAZIONE DISEGNO FENICE
         phoenix_frame_index += phoenix_anim_speed
         if phoenix_frame_index >= len(phoenix_sheet):
             phoenix_frame_index = 0
         phoenix_image = phoenix_sheet[int(phoenix_frame_index)]
+        
+        # R/S fenice
         if mouse_pos > Old_mouse_pos:
             Side_phoenix = 'R'
         elif mouse_pos < Old_mouse_pos:
@@ -196,21 +219,33 @@ def main() -> None:
             phoenix_image = pygame.transform.flip(phoenix_image, True, False)
             
             
+        #ANIMAZIONE DISEGNO SLIME
+        slime_frame_index += slime_anim_speed
+        if slime_frame_index >= 2:
+            slime_frame_index = 0
+        slime_image = slime_idle[int(slime_frame_index)]
+            
         # DISEGNO
         screen.blit(backstage, (0,0))
         
-        # samurai
-        pygame.draw.rect(screen, (0, 255, 0), samurai_rect) #hitbox
+        #samurai
         screen.blit(current_image, (x, y))
-
-        
-        
 
         # fenice
         screen.blit(phoenix_image, mouse_pos)
-
+        
+        # slime
+        screen.blit(slime_image, (600, 300))
+        
+        # aggiorna schermo
         pygame.display.flip()
-
+        
+        
+        #mostri
+        screen.blit(slime_image, (600, 300))
+        
+        
+        
     pygame.quit()
     sys.exit()
 
