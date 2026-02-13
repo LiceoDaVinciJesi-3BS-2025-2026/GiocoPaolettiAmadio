@@ -153,7 +153,7 @@ def main() -> None:
     dragon_idle_left = dragon_animations[1]
     dragon_frame_index = 0
     dragon_anim_speed = 0.08
-    dragon_x, dragon_y = 1600, 300
+    dragon_x, dragon_y = 1600, (SCREEN_H // 2) - 32 * 3
     dragon_speed = 2
     
     
