@@ -65,8 +65,8 @@ def main() -> None:
     
     # Draghetto
     dragon_sheet = pygame.image.load("Baby_Dragon_2D.png").convert_alpha() 
-    frames_dragon = rescale_frames(load_frames(dragon_sheet, 2, 2, 64, 64), 2.5)
-    
+    frames_dragon_left = rescale_frames(load_frames(dragon_sheet, 2, 2, 64, 64), 2.5)
+    frames_dragon_right = [pygame.transform.flip(f, True, False) for f in frames_dragon_left]
 
     # --- VARIABILI DI GIOCO ---
     shrine_max_hp, shrine_current_hp = 100.0, 100.0
@@ -118,6 +118,10 @@ def main() -> None:
                 side_pg = 'R'
                 current_frames = frames_run_right if is_running else frames_walk_right
                 moved = True
+            
+            # limitazioni nelle 4 direzioni
+            px = max(90, min(px, SCREEN_W - 218))
+            py = max(75, min(py, SCREEN_H - 218))
             
             if not moved:
                 current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
@@ -196,7 +200,10 @@ def main() -> None:
             if e[3] == 'slime':
                 img = frames_slime[int(e[-2]) % 4]
             elif e[3] == 'dragon':
-                img = frames_dragon[int(e[-2]) % 4]
+                if e[0] < SCREEN_W // 2:
+                    img = frames_dragon_right[int(e[-2]) % 4]
+                else:
+                    img = frames_dragon_left[int(e[-2]) % 4]
             screen.blit(img, (e[0], e[1]))
 
         # Disegno Samurai
