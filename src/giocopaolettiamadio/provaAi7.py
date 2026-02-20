@@ -53,7 +53,7 @@ def main() -> None:
     backstage = pygame.image.load("arenaRettangolare.png").convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
     
-    shrine_img = pygame.image.load("Adobe Express - file (1).png").convert_alpha()
+    shrine_img = pygame.image.load("tempio100hp.png").convert_alpha()
     shrine_img = pygame.transform.scale(shrine_img, (int(shrine_img.get_width()*0.6), int(shrine_img.get_height()*0.6)))
     shrine_rect = shrine_img.get_rect(center=(SCREEN_W//2, SCREEN_H//2))
     
