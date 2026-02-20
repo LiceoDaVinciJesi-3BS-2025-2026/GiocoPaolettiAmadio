@@ -178,24 +178,24 @@ def main() -> None:
 
         if not game_over:
             keys       = pygame.key.get_pressed()
-            is_running = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-            speed      = SPEED_RUN if is_running else SPEED_WALK
+            is_walking = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+            speed      = SPEED_WALK if is_walking else SPEED_RUN
             moved      = False
 
             # --- MOVIMENTO ---
             if keys[pygame.K_w] or keys[pygame.K_UP]:
-                py -= speed; current_frames = frames_run_up if is_running else frames_walk_up; moved = True
+                py -= speed; current_frames = frames_walk_up if is_walking else frames_run_up; moved = True
             elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
-                py += speed; current_frames = frames_run_down if is_running else frames_walk_down; moved = True
+                py += speed; current_frames = frames_walk_down_down if is_walking else frames_run_down; moved = True
             elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
-                px -= speed; side_pg = 'L'; current_frames = frames_run_left if is_running else frames_walk_left; moved = True
+                px -= speed; side_pg = 'L'; current_frames = frames_walk_left if is_walking else frames_run_left; moved = True
             elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-                px += speed; side_pg = 'R'; current_frames = frames_run_right if is_running else frames_walk_right; moved = True
+                px += speed; side_pg = 'R'; current_frames = frames_walk_right if is_walking else frames_run_right; moved = True
 
             if not moved:
                 current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
 
-            anim_speed = ANIM_SPEED * 1.5 if is_running else ANIM_SPEED
+            anim_speed = ANIM_SPEED  if is_walking else ANIM_SPEED * 1.5
             frame_index += anim_speed
             if frame_index >= len(current_frames):
                 frame_index = 0
