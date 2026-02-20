@@ -62,10 +62,10 @@ def main() -> None:
         img = pygame.image.load(filename).convert_alpha()
         return pygame.transform.scale(img, (shrine_img.get_width(), shrine_img.get_height()))
     shrine_100 = load_shrine_state("tempio100hp.png")
-    shrine_75 = load_shrine_state("tempio75hp_nosfondomod.png")
-    shrine_50 = load_shrine_state("tempio50hp_nosfondomod.png")
-    shrine_25 = load_shrine_state("tempio25hp_nosfondomod.png")
-    shrine_0  = load_shrine_state("tempio0hp_nosfondomod.png")
+    shrine_75 = load_shrine_state("tempio75hp_nosfondo.png")
+    shrine_50 = load_shrine_state("tempio50hp_nosfondo.png")
+    shrine_25 = load_shrine_state("tempio25hp_nosfondo.png")
+    shrine_0  = load_shrine_state("tempio0hp_nosfondo.png")
 
     def get_shrine_img(hp):
         if   hp > 75: return shrine_100
