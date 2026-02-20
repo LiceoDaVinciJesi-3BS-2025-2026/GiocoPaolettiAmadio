@@ -60,7 +60,7 @@ def main() -> None:
     # --- IMMAGINI DANNO SHRINE ---
     def load_shrine_state(filename):
         img = pygame.image.load(filename).convert_alpha()
-        return pygame.transform.scale(img, (shrine_img.get_width(), shrine_img.get_height()))
+        return pygame.transform.scale(img, (int(img.get_width()*0.6), int(img.get_width()*0.6)))
     shrine_100 = load_shrine_state("tempio100hp.png")
     shrine_75 = load_shrine_state("mod75_nosfondo.png")
     shrine_50 = load_shrine_state("mod50_nosfondo.png")
@@ -278,7 +278,7 @@ def main() -> None:
             # --- DISEGNO SFONDO ---
             screen.blit(backstage, (0, 0))
             screen.blit(get_shrine_img(shrine_current_hp), shrine_rect)
-
+            
             # --- LOGICA NEMICI ---
             for enemy in enemies.copy():
                 dx   = shrine_rect.centerx - enemy[0]
