@@ -20,7 +20,6 @@ def main() -> None:
             FRAME_SIZE_H = FRAME_SIZE_W
         for row in range(ROWS):
             for col in range(COLS):
-                # CORREZIONE: x usa col, y usa row
                 rect = pygame.Rect(col * FRAME_SIZE_W, row * FRAME_SIZE_H, FRAME_SIZE_W, FRAME_SIZE_H)
                 frames.append(sheet.subsurface(rect))
         return frames
@@ -31,6 +30,7 @@ def main() -> None:
     # --- COSTANTI ---
     FRAME_SIZE_samurai = 256
     ANIM_SPEED = 0.15
+    ATTACK_ANIM_SPEED = 0.35   # più veloce per sembrare reattivo
     SPEED_WALK = 4
     SPEED_RUN = 8
     
@@ -58,23 +58,35 @@ def main() -> None:
     frames_run_right = get_samurai_frames("SamuraiRunDxgiusto.png")
     frames_run_left = [pygame.transform.flip(f, True, False) for f in frames_run_right]
 
-    
+    # --- CARICAMENTO ANIMAZIONE ATTACCO ---
+    # Questo sheet è 2560x2560px con griglia 5x5 → ogni frame è 512x512px (non 256px come gli altri)
+    def get_attack_frames(filename):
+        sheet = pygame.image.load(filename).convert_alpha()
+        return rescale_frames(load_frames(sheet, 5, 5, 512, 512), 0.5)
+
+    frames_attack_right = get_attack_frames("sprite-256px-251.png")
+    frames_attack_left = [pygame.transform.flip(f, True, False) for f in frames_attack_right]
+
     # --- CARICAMENTO NEMICI ---
-    # Slime
     slime_sheet = pygame.image.load("SlimeSpriteSheet.png").convert_alpha()
     frames_slime = rescale_frames(load_frames(slime_sheet, 1, 4, 32, 32), 2.5)
     
-    # Draghetto
     dragon_sheet = pygame.image.load("Baby_Dragon_2D.png").convert_alpha() 
     frames_dragon_left = rescale_frames(load_frames(dragon_sheet, 2, 2, 64, 64), 2.5)
-    frames_dragon_right = [pygame.transform.flip(f, True, False) for f in frames_dragon_left]
+    frames_dragon_right_enemy = [pygame.transform.flip(f, True, False) for f in frames_dragon_left]
 
     # --- VARIABILI DI GIOCO ---
     shrine_max_hp, shrine_current_hp = 100.0, 100.0
-    px, py = SCREEN_W // 2, SCREEN_H // 2 # Unificate coordinate x, y
+    px, py = SCREEN_W // 2, SCREEN_H // 2
     side_pg = 'R'
     frame_index = 0
     current_frames = frames_idle_right
+
+    # --- STATO ATTACCO ---
+    is_attacking = False        # True mentre l'animazione di attacco è in corso
+    attack_frame = 0.0          # frame corrente dell'animazione attacco
+    attack_damage_dealt = False # evita danno multiplo per singolo attacco
+    ATTACK_TOTAL_FRAMES = len(frames_attack_right)  # 25 frame (5x5)
     
     enemies = []
     spawn_timer = 0
@@ -92,46 +104,76 @@ def main() -> None:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+            # Avvia attacco al KEYDOWN di SPAZIO (non con keys pressed)
+            # così si triggera una sola volta per pressione
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                if not is_attacking:
+                    is_attacking = True
+                    attack_frame = 0.0
+                    attack_damage_dealt = False
 
         if not game_over:
-            # 1. INPUT E MOVIMENTO SAMURAI
-            keys = pygame.key.get_pressed()
+            keys = pygame.get_pressed() if False else pygame.key.get_pressed()
             is_running = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
             speed = SPEED_RUN if is_running else SPEED_WALK
             moved = False
 
-            # Logica direzioni
-            if keys[pygame.K_w] or keys[pygame.K_UP]:
-                py -= speed
-                current_frames = frames_run_up if is_running else frames_walk_up
-                moved = True
-            elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
-                py += speed
-                current_frames = frames_run_down if is_running else frames_walk_down
-                moved = True
-            elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
-                px -= speed
-                side_pg = 'L'
-                current_frames = frames_run_left if is_running else frames_walk_left
-                moved = True
-            elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-                px += speed
-                side_pg = 'R'
-                current_frames = frames_run_right if is_running else frames_walk_right
-                moved = True
-            
-            # limitazioni nelle 4 direzioni
+            # --- GESTIONE ANIMAZIONE ATTACCO ---
+            if is_attacking:
+                # Sovrascrive current_frames con quella di attacco
+                current_frames = frames_attack_right if side_pg == 'R' else frames_attack_left
+                attack_frame += ATTACK_ANIM_SPEED
+
+                # Applica danno a metà animazione (frame ~12) una sola volta
+                if attack_frame >= ATTACK_TOTAL_FRAMES * 0.5 and not attack_damage_dealt:
+                    attack_damage_dealt = True
+                    for enemy in enemies.copy():
+                        dist_to_pg = math.hypot(px + 64 - enemy[0], py + 64 - enemy[1])
+                        if dist_to_pg < 120:
+                            enemy[2] -= 2
+                            if enemy[2] <= 0:
+                                enemies.remove(enemy)
+
+                # Fine animazione attacco
+                if attack_frame >= ATTACK_TOTAL_FRAMES:
+                    is_attacking = False
+                    attack_frame = 0.0
+                    current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
+
+                frame_index = attack_frame
+
+            else:
+                # --- INPUT E MOVIMENTO (solo se non in attacco) ---
+                if keys[pygame.K_w] or keys[pygame.K_UP]:
+                    py -= speed
+                    current_frames = frames_run_up if is_running else frames_walk_up
+                    moved = True
+                elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
+                    py += speed
+                    current_frames = frames_run_down if is_running else frames_walk_down
+                    moved = True
+                elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                    px -= speed
+                    side_pg = 'L'
+                    current_frames = frames_run_left if is_running else frames_walk_left
+                    moved = True
+                elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                    px += speed
+                    side_pg = 'R'
+                    current_frames = frames_run_right if is_running else frames_walk_right
+                    moved = True
+
+                if not moved:
+                    current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
+
+                anim_speed = ANIM_SPEED * 1.5 if is_running else ANIM_SPEED
+                frame_index += anim_speed
+                if frame_index >= len(current_frames):
+                    frame_index = 0
+
+            # Limiti schermo
             px = max(90, min(px, SCREEN_W - 218))
             py = max(75, min(py, SCREEN_H - 218))
-            
-            if not moved:
-                current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
-
-            # Animazione Samurai
-            anim_speed = ANIM_SPEED * 1.5 if is_running else ANIM_SPEED
-            frame_index += anim_speed
-            if frame_index >= len(current_frames):
-                frame_index = 0
 
             # 2. SPAWN NEMICI
             spawn_timer += dt
@@ -142,7 +184,7 @@ def main() -> None:
                     ex = random.randint(0, SCREEN_W) if side in ['T','B'] else (0 if side=='L' else SCREEN_W)
                     ey = random.randint(0, SCREEN_H) if side in ['L','R'] else (0 if side=='T' else SCREEN_H)
                     
-                    e_type = random.choice(['slime', 'dragon']) #scelta tipo di nemico
+                    e_type = random.choice(['slime', 'dragon'])
                     if e_type == 'slime':
                         hp = 30
                         speed = 2.0
@@ -153,19 +195,14 @@ def main() -> None:
                         speed = 1.2
                         e_w = 160
                         e_h = 160
-                    #lista dei nemici: x, y, vita, tipo, larghezza, altezza, frame, velocità   
                     enemies.append([ex, ey, hp, e_type, e_w, e_h, 0.0, speed])
-            
-            
-                
+
             # --- DISEGNO ---
             screen.blit(backstage, (0, 0))
             screen.blit(shrine_img, shrine_rect)
-        
-            
-            # 3. LOGICA NEMICI E ATTACCO
+
+            # 3. LOGICA NEMICI
             for enemy in enemies.copy():
-                # Muovi verso lo shrine
                 dx = shrine_rect.centerx - enemy[0]
                 dy = shrine_rect.centery - enemy[1]
                 dist = math.hypot(dx, dy)
@@ -174,35 +211,27 @@ def main() -> None:
                     enemy[0] += (dx / dist) * enemy[-1]
                     enemy[1] += (dy / dist) * enemy[-1]
                 else:
-                    shrine_current_hp -= 0.05 # Danno allo shrine
+                    shrine_current_hp -= 0.05
 
-                # Animazione nemici
                 enemy[-2] += 0.15
                 if enemy[-2] >= (8 if enemy[3] == 'slime' else 4):
                     enemy[-2] = 0
 
-                # Attacco del Samurai (SPAZIO)
-                if keys[pygame.K_SPACE]:
-                    # Calcola distanza tra Samurai e Nemico
-                    dist_to_pg = math.hypot(px + 64 - enemy[0], py + 64 - enemy[1])
-                    if dist_to_pg < 120:
-                        enemy[2] -= 2
-                        pygame.draw.rect(screen, 'red', (enemy[0], enemy[1], enemy[4], enemy[5]))
-                if enemy[2] <= 0:
+                # Rimuovi nemici già eliminati durante l'attacco
+                if enemy[2] <= 0 and enemy in enemies:
                     enemies.remove(enemy)
 
             if shrine_current_hp <= 0:
                 shrine_current_hp = 0
                 game_over = True
 
-        
         # Disegno Nemici
         for e in enemies:
             if e[3] == 'slime':
                 img = frames_slime[int(e[-2]) % 4]
             elif e[3] == 'dragon':
                 if e[0] < SCREEN_W // 2:
-                    img = frames_dragon_right[int(e[-2]) % 4]
+                    img = frames_dragon_right_enemy[int(e[-2]) % 4]
                 else:
                     img = frames_dragon_left[int(e[-2]) % 4]
             screen.blit(img, (e[0], e[1]))
