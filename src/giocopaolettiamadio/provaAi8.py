@@ -53,19 +53,22 @@ def main() -> None:
     backstage = pygame.image.load("arenaRettangolare.png").convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
     
-    shrine_img = pygame.image.load("tempio100hp.png").convert_alpha()
-    shrine_img = pygame.transform.scale(shrine_img, (int(shrine_img.get_width()*0.6), int(shrine_img.get_height()*0.6)))
-    shrine_rect = shrine_img.get_rect(center=(SCREEN_W//2, SCREEN_H//2))
+    shrine_75 = pygame.image.load("tempio75hpRifilato.png").convert_alpha()
+    shrine_75 = pygame.transform.scale(shrine_75, (int(shrine_75.get_width()*0.6), int(shrine_75.get_height()*0.6)))
+    shrine_rect = shrine_75.get_rect(center = (SCREEN_W//2, SCREEN_H//2))
 
     # --- IMMAGINI DANNO SHRINE ---
     def load_shrine_state(filename):
         img = pygame.image.load(filename).convert_alpha()
-        return pygame.transform.scale(img, (int(img.get_width()*0.6), int(img.get_width()*0.6)))
-    shrine_100 = load_shrine_state("tempio100hp.png")
-    shrine_75 = load_shrine_state("mod75_nosfondo.png")
-    shrine_50 = load_shrine_state("mod50_nosfondo.png")
-    shrine_25 = load_shrine_state("mod25_nosfondo.png")
-    shrine_0  = load_shrine_state("mod0_nosfondo.png")
+        #fattore di riduzione
+        scale_factor = shrine_rect.width / img.get_width()
+        #rescaling degli shrine senza cambiare le proporzioni
+        return pygame.transform.scale(img, (shrine_rect.width, int(img.get_height() * scale_factor)))
+    
+    shrine_100 = load_shrine_state("tempio100hpRifilato.png")
+    shrine_50 = load_shrine_state("tempio50hpRifilato.png")
+    shrine_25 = load_shrine_state("tempio25hpRifilato.png")
+    shrine_0  = load_shrine_state("tempio0hpRifilato.png")
 
     def get_shrine_img(hp):
         if   hp > 75: return shrine_100
@@ -191,24 +194,24 @@ def main() -> None:
 
         if not game_over:
             keys       = pygame.key.get_pressed()
-            is_running = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-            speed      = SPEED_RUN if is_running else SPEED_WALK
+            is_walking = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+            speed      = SPEED_WALK if is_walking else SPEED_RUN
             moved      = False
 
             # --- MOVIMENTO ---
             if keys[pygame.K_w] or keys[pygame.K_UP]:
-                py -= speed; current_frames = frames_run_up if is_running else frames_walk_up; moved = True
+                py -= speed; current_frames = frames_walk_up if is_walking else frames_run_up; moved = True
             elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
-                py += speed; current_frames = frames_run_down if is_running else frames_walk_down; moved = True
+                py += speed; current_frames = frames_walk_down if is_walking else frames_run_down; moved = True
             elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
-                px -= speed; side_pg = 'L'; current_frames = frames_run_left if is_running else frames_walk_left; moved = True
+                px -= speed; side_pg = 'L'; current_frames = frames_walk_left if is_walking else frames_run_left; moved = True
             elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-                px += speed; side_pg = 'R'; current_frames = frames_run_right if is_running else frames_walk_right; moved = True
+                px += speed; side_pg = 'R'; current_frames = frames_walk_right if is_walking else frames_run_right; moved = True
 
             if not moved:
                 current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
 
-            anim_speed = ANIM_SPEED * 1.5 if is_running else ANIM_SPEED
+            anim_speed = ANIM_SPEED if is_walking else ANIM_SPEED * 1.5
             frame_index += anim_speed
             if frame_index >= len(current_frames):
                 frame_index = 0
@@ -277,7 +280,9 @@ def main() -> None:
 
             # --- DISEGNO SFONDO ---
             screen.blit(backstage, (0, 0))
-            screen.blit(get_shrine_img(shrine_current_hp), shrine_rect)
+            pygame.draw.rect(screen, 'red', shrine_rect)
+            screen.blit(get_shrine_img(shrine_current_hp), (shrine_rect.x, shrine_rect.y))
+            
             
             # --- LOGICA NEMICI ---
             for enemy in enemies.copy():
