@@ -65,7 +65,7 @@ def main() -> None:
         #rescaling degli shrine senza cambiare le proporzioni
         return pygame.transform.scale(img, (shrine_rect.width, int(img.get_height() * scale_factor)))
     
-    shrine_100 = load_shrine_state("tempio100hpRifilato.png")
+    shrine_100 = load_shrine_state("tempio1nosfondo.png")
     shrine_50 = load_shrine_state("tempio50hpRifilato.png")
     shrine_25 = load_shrine_state("tempio25hpRifilato.png")
     shrine_0  = load_shrine_state("tempio0hpRifilato.png")
@@ -74,7 +74,7 @@ def main() -> None:
         if   hp > 75: return shrine_100
         elif hp > 50: return shrine_75
         elif hp > 25: return shrine_50
-        elif hp == 0:  return shrine_25
+        elif hp > 0:  return shrine_25
         else: return shrine_0
     
     # --- CARICAMENTO SAMURAI ---
