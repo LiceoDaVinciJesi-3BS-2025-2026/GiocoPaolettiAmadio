@@ -54,7 +54,7 @@ def main() -> None:
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
     
     shrine_75 = pygame.image.load("tempio75hpRifilato.png").convert_alpha()
-    shrine_75 = pygame.transform.scale(shrine_75, (int(shrine_75.get_width()*0.6), int(shrine_75.get_height()*0.6)))
+    shrine_75 = pygame.transform.scale(shrine_75, (int(shrine_75.get_width()*0.5), int(shrine_75.get_height()*0.5)))
     shrine_rect = shrine_75.get_rect(center = (SCREEN_W//2, SCREEN_H//2))
 
     # --- IMMAGINI DANNO SHRINE ---
