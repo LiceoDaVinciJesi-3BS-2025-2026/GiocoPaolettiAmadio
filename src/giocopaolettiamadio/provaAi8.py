@@ -280,7 +280,6 @@ def main() -> None:
 
             # --- DISEGNO SFONDO ---
             screen.blit(backstage, (0, 0))
-            pygame.draw.rect(screen, 'red', shrine_rect)
             screen.blit(get_shrine_img(shrine_current_hp), (shrine_rect.x, shrine_rect.y + (shrine_75.get_height()-(get_shrine_img(shrine_current_hp)).get_height()) ))
             
             
