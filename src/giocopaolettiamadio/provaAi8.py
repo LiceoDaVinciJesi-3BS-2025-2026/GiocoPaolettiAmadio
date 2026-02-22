@@ -134,24 +134,25 @@ def main() -> None:
         totale      = 4 + (wave_num - 1) * 2
         prob_dragon = min(0.1 + (wave_num - 1) * 0.1, 0.7)
         hp_mult     = 1.0 + (wave_num - 1) * 0.2
-        return {"totale": totale, "prob_dragon": prob_dragon, "hp_mult": hp_mult}
+        params = [totale, prob_dragon, hp_mult]
+        return params
 
     def build_spawn_queue(params):
         queue = []
-        for _ in range(params["totale"]):
-            e_type = 'dragon' if random.random() < params["prob_dragon"] else 'slime'
+        for coso in range(params[0]):
+            e_type = 'dragon' if random.random() < params[1] else 'slime'
             if e_type == 'slime':
-                hp = int(30 * params["hp_mult"]); espeed = 2.0; e_w, e_h = 80,  80
+                hp = int(30 * params[2]); espeed = 2.0; e_w, e_h = 80,  80
             else:
-                hp = int(50 * params["hp_mult"]); espeed = 1.2; e_w, e_h = 160, 160
-            queue.append({"type": e_type, "hp": hp, "speed": espeed, "w": e_w, "h": e_h})
+                hp = int(50 * params[2]); espeed = 1.2; e_w, e_h = 160, 160
+            queue.append([e_type, hp, espeed, e_w, e_h])
         return queue
 
     def spawn_one(entry):
         side = random.choice(['T', 'B', 'L', 'R'])
         ex = random.randint(0, SCREEN_W) if side in ['T', 'B'] else (0 if side == 'L' else SCREEN_W)
         ey = random.randint(0, SCREEN_H) if side in ['L', 'R'] else (0 if side == 'T' else SCREEN_H)
-        enemies.append([ex, ey, entry["hp"], entry["type"], entry["w"], entry["h"], 0.0, entry["speed"]])
+        enemies.append([ex, ey, entry[1], entry[0], entry[3], entry[4], 0.0, entry[2]])
 
     wave_state   = "WAVE_SPAWN"
     current_wave = 1
@@ -280,6 +281,7 @@ def main() -> None:
 
             # --- DISEGNO SFONDO ---
             screen.blit(backstage, (0, 0))
+            #per l'altezza, ho cercato di fare in modo che il bordo inferiore fosse allineato
             screen.blit(get_shrine_img(shrine_current_hp), (shrine_rect.x, shrine_rect.y + (shrine_75.get_height()-(get_shrine_img(shrine_current_hp)).get_height()) ))
             
             
