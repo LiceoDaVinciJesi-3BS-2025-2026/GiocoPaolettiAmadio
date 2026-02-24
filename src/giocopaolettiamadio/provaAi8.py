@@ -170,7 +170,7 @@ def main() -> None:
 
     # --- STATO ORB ---
     orb_angle         = 0.0
-    orb_hit_cooldowns = {}
+    orb_hit_cooldowns = [] #da modificare per far tornare una lista
 
     # --- STATO COLTELLI ---
     knives      = []
@@ -236,18 +236,30 @@ def main() -> None:
                 knives.append([pg_cx, pg_cy, vx, vy, surf, hs])
 
             # --- AGGIORNA ORB ---
+            #calcolo angolazione della orb
             orb_angle += ORB_SPEED * (dt / 1000.0)
+            #coordinate del centro del personaggio
             pg_cx = px + 64; pg_cy = py + 64
-            orb_positions = [
-                (pg_cx + math.cos(orb_angle + i * math.pi) * ORB_ORBIT_RADIUS,
-                 pg_cy + math.sin(orb_angle + i * math.pi) * ORB_ORBIT_RADIUS)
-                for i in range(2)
-            ]
-            for eid in list(orb_hit_cooldowns):
-                orb_hit_cooldowns[eid] -= 1
-                if orb_hit_cooldowns[eid] <= 0:
-                    del orb_hit_cooldowns[eid]
-
+            
+            orb_positions = []
+            for i in range(2):
+                #i = 0 -> 0° prima orb
+                #i = 1 -> 180° seconda orb, diametralmente opposta
+                #math.cos(angolo): Ci dice quanto dobbiamo spostarci a DESTRA o SINISTRA dal centro, in proporzione
+                #math.sin(angolo): Ci dice quanto dobbiamo spostarci in ALTO o BASSO dal centro, in proporzione
+                #*ORB_ORBIT_RADIUS moltiplica il valore trovato con sin e cos per il raggio, lo allunga
+                orb_positions.append((pg_cx + math.cos(orb_angle + i * math.pi) * ORB_ORBIT_RADIUS, pg_cy + math.sin(orb_angle + i * math.pi) * ORB_ORBIT_RADIUS))
+            
+            
+            #orb_hit_cooldowns: un nemico deve aspettare un tot per essere colpito nuovamente dalla orb
+            # Creiamo una nuova lista tenendo solo chi ha ancora un timer attivo
+            new_orb_hit_cooldowns = []
+            for entry in orb_hit_cooldowns:
+                entry[1] -= 1  # Abbassa il timer (che è in posizione 1)
+                if entry[1] > 0: #lo teniamo solo se ancora deve scontare tempo [elimina chi ha timer nullo]
+                    new_orb_hit_cooldowns.append(entry)
+                orb_hit_cooldowns = new_orb_hit_cooldowns
+            
             # --- AGGIORNA COLTELLI ---
             for k in knives.copy():
                 k[0] += k[2]; k[1] += k[3]
@@ -287,6 +299,11 @@ def main() -> None:
             
             # --- LOGICA NEMICI ---
             for enemy in enemies.copy():
+                #coordinate centro del nemico
+                ecx = enemy[0] + enemy[4] / 2
+                ecy = enemy[1] + enemy[5] / 2
+                
+                #distanza del nemico dallo shrine
                 dx   = shrine_rect.centerx - enemy[0]
                 dy   = shrine_rect.centery - enemy[1]
                 dist = math.hypot(dx, dy)
@@ -296,24 +313,40 @@ def main() -> None:
                     enemy[1] += (dy / dist) * enemy[7]
                 else:
                     shrine_current_hp -= 0.05
-
+                
+                #animazione nemici: enemy 6 è frame index
                 enemy[6] += 0.15
                 if enemy[6] >= 4:
                     enemy[6] = 0
 
                 # Collisione ORB
+                #id è l'identificativo del preciso slime nella memoria stesso del computer(RAM) tipo (1465367)
                 eid = id(enemy)
-                if eid not in orb_hit_cooldowns:
-                    ecx = enemy[0] + enemy[4] / 2
-                    ecy = enemy[1] + enemy[5] / 2
-                    for (ox, oy) in orb_positions:
-                        if math.hypot(ox - ecx, oy - ecy) < ORB_RADIUS + max(enemy[4], enemy[5]) / 2:
-                            enemy[2] -= ORB_DAMAGE
-                            orb_hit_cooldowns[eid] = ORB_DAMAGE_COOLDOWN
-                            break
 
-                # Collisione COLTELLI
+                # Controlliamo se il nemico è "in punizione"
+                gia_colpito = False
+                for entry in orb_hit_cooldowns:
+                    #entry contiene l'id del nemico e il tempo che deve scontare
+                    if entry[0] == eid:
+                        gia_colpito = True
+                        break
+
+                if not gia_colpito:
+                    for (ox, oy) in orb_positions:
+                        #se sono nel raggio delle orbe
+                        if math.hypot(ox - ecx, oy - ecy) < ORB_RADIUS + max(enemy[4], enemy[5]) / 2:
+                            #riduzione hp nemico [enemy2]
+                            enemy[2] -= ORB_DAMAGE
+                            # Aggiungiamo il nemico alla lista con il suo timer
+                            orb_hit_cooldowns.append([eid, ORB_DAMAGE_COOLDOWN])
+                            #break per evitare il 'doppio danno' (se entrambe le orb toccano il nemico)
+                            break
+                
+                
+                #rettangolo dei nemici
                 enemy_rect = pygame.Rect(enemy[0], enemy[1], enemy[4], enemy[5])
+                
+                # Collisione COLTELLI                
                 for k in knives.copy():
                     knife_rect = pygame.Rect(k[0]-k[5], k[1]-k[5], k[5]*2, k[5]*2)
                     if enemy_rect.colliderect(knife_rect):
@@ -324,7 +357,9 @@ def main() -> None:
 
                 if enemy[2] <= 0 and enemy in enemies:
                     enemies.remove(enemy)
-
+            
+            
+            #controllo del game_over
             if shrine_current_hp <= 0:
                 shrine_current_hp = 0
                 game_over = True
@@ -346,10 +381,14 @@ def main() -> None:
 
             # --- DISEGNO ORB ---
             for (ox, oy) in orb_positions:
+                #disegno della trasparenza
+                #glow è una superficie che supporta la trasparenza, su di essa ci disegniamo un cerchio doppio della orb
                 glow = pygame.Surface((ORB_RADIUS*4, ORB_RADIUS*4), pygame.SRCALPHA)
                 pygame.draw.circle(glow, (255, 210, 0, 70), (ORB_RADIUS*2, ORB_RADIUS*2), ORB_RADIUS*2)
                 screen.blit(glow, (int(ox) - ORB_RADIUS*2, int(oy) - ORB_RADIUS*2))
+                #disegno del nucleo della orb
                 pygame.draw.circle(screen, (255, 220, 0),   (int(ox), int(oy)), ORB_RADIUS)
+                #disegno del cerchio bianco 'punto di luce', leggermente in alto a sinistra
                 pygame.draw.circle(screen, (255, 255, 210), (int(ox)-3, int(oy)-3), ORB_RADIUS//3)
 
         # --- UI ---
