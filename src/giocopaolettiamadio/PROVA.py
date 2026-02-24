@@ -407,7 +407,7 @@ def main() -> None:
             screen.blit(current_frames[int(frame_index) % len(current_frames)], (px, py))
 
             # --- DISEGNO ORB ---
-             for (ox, oy) in orb_positions:
+            for (ox, oy) in orb_positions:
                 #disegno della trasparenza
                 #glow è una superficie che supporta la trasparenza, su di essa ci disegniamo un cerchio doppio della orb
                 glow = pygame.Surface((ORB_RADIUS*4, ORB_RADIUS*4), pygame.SRCALPHA)
