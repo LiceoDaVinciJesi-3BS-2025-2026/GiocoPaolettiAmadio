@@ -389,6 +389,7 @@ def main() -> None:
             #controllo del game over
             if shrine_current_hp <= 0:
                 shrine_current_hp = 0
+                running = False
                 game_over = True
 
             # --- DISEGNO COLTELLI ---
@@ -435,13 +436,40 @@ def main() -> None:
             seconds_left = max(1, int((PAUSE_DURATION - pause_timer) / 1000) + 1)
             ann = font_wave.render(f"WAVE  {current_wave + 1}  in  {seconds_left}...", True, (255, 230, 60))
             screen.blit(ann, (SCREEN_W//2 - ann.get_width()//2, SCREEN_H//2 - 40))
-
-        if game_over:
-            over_txt = font_health.render("SHRINE DESTROYED! ESC to Quit", True, (255,50,50))
-            screen.blit(over_txt, (SCREEN_W//2 - over_txt.get_width()//2, SCREEN_H//2))
+           
 
         pygame.display.flip()
-
+    
+    while game_over:
+        #uscire dal gioco
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_over = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                game_over = False
+        
+        # --- DISEGNO SFONDO ---
+        screen.blit(backstage, (0, 0))
+        shrine_img = get_shrine_img(shrine_current_hp)
+        screen.blit(shrine_img, (shrine_rect.x, shrine_rect.y + (shrine_75.get_height() - shrine_img.get_height()) ))
+               
+        
+        # --- DISEGNO SAMURAI ---
+        screen.blit(current_frames[int(frame_index) % len(current_frames)], (px, py))
+        
+        # Scurisce leggermente lo schermo
+        overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 100)) # Nero semitrasparente, con il quarto numero
+        screen.blit(overlay, (0,0))
+        
+        #disegno scritta della sconfitta
+        over_txt = font_health.render("SHRINE DESTROYED! ESC to Quit", True, (255,50,50))
+        screen.blit(over_txt, (SCREEN_W//2 - over_txt.get_width()//2, SCREEN_H//2))
+        
+        pygame.display.flip()
+        clock.tick(60)
+        
+        
     pygame.quit()
     sys.exit()
 
