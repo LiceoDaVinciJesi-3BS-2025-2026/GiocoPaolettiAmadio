@@ -170,7 +170,7 @@ def main() -> None:
 
     # --- STATO ORB ---
     orb_angle         = 0.0
-    orb_hit_cooldowns = [] #da modificare per far tornare una lista
+    orb_hit_cooldowns = [] 
 
     # --- STATO COLTELLI ---
     knives      = []
