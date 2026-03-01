@@ -89,7 +89,10 @@ def spawn_one(entry, enemies, SCREEN_W, SCREEN_H):
             ey = 0
         else:
             ey = SCREEN_H
-    enemies.append([ex, ey, entry[1], entry[0], entry[3], entry[4], 0.0, entry[2]])
+            
+    #aggiungo le informazioni sul nemico alla lista completa
+    #8. contatore anim. danno
+    enemies.append([ex, ey, entry[1], entry[0], entry[3], entry[4], 0.0, entry[2], 0])
     
 #---------------------------------------------------------------------------------------#
 #funzione run del gioco
@@ -103,7 +106,7 @@ def main() -> None:
     pygame.display.set_caption("Phoenix Quest - Defend the Shrine")
     clock = pygame.time.Clock()
 
-    # --- COSTANTI ---
+    # --- COSTANTI PERSONAGGIO ---
     FRAME_SIZE_samurai = 256
     ANIM_SPEED  = 0.15
     SPEED_WALK  = 4
@@ -127,7 +130,13 @@ def main() -> None:
     # --- COSTANTI ORDE ---
     PAUSE_DURATION = 4000
     SPAWN_INTERVAL = 400
-
+    
+    
+    # --- COSTANTI IN GIOCO ---
+    #durata animazione danno nemico
+    HIT_FLASH_DURATION = 8
+    
+    
     # --- CARICAMENTO ASSET ---
     backstage = pygame.image.load("arenaRettangolare.png").convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
@@ -150,8 +159,7 @@ def main() -> None:
             return shrine_50
         elif hp > 0:
             return shrine_25
-        else:
-            return shrine_0
+        return shrine_0
     
     # --- CARICAMENTO SAMURAI ---
     # --- CARICAMENTO SAMURAI ---
@@ -373,6 +381,8 @@ def main() -> None:
                         if math.hypot(ox - ecx, oy - ecy) < ORB_RADIUS + max(enemy[4], enemy[5]) / 2:
                             #riduzione hp nemico [enemy2]
                             enemy[2] -= ORB_DAMAGE
+                            #stato del danno
+                            enemy[8] = HIT_FLASH_DURATION
                             # Aggiungiamo il nemico alla lista con il suo timer
                             orb_hit_cooldowns.append([eid, ORB_DAMAGE_COOLDOWN])
                             #break per evitare il 'doppio danno' (se entrambe le orb toccano il nemico)
@@ -387,6 +397,8 @@ def main() -> None:
                     knife_rect = pygame.Rect(k[0]-k[5], k[1]-k[5], k[5]*2, k[5]*2)
                     if enemy_rect.colliderect(knife_rect):
                         enemy[2] -= KNIFE_DAMAGE
+                        #stato del danno
+                        enemy[8] = HIT_FLASH_DURATION
                         if k in knives:
                             knives.remove(k)
                         break
@@ -409,8 +421,25 @@ def main() -> None:
                 if e[3] == 'slime':
                     img = frames_slime[int(e[6]) % 4]
                 else:
-                    img = frames_dragon_right[int(e[6]) % 4] if e[0] < SCREEN_W//2 else frames_dragon_left[int(e[6]) % 4]
+                    if e[0] < SCREEN_W//2 :
+                        img = frames_dragon_right[int(e[6]) % 4] 
+                    else :
+                        img = frames_dragon_left[int(e[6]) % 4]
+                        
                 screen.blit(img, (e[0], e[1]))
+                
+                #flash rosso se il nemico è colpito
+                if e[8] > 0:
+                    #cooldown stato del danno
+                    e[8] -= 1
+                    
+                    #maschera superiore con la stessa forma dello sprite
+                    red_overlay = img.copy()
+                    #riempio la maschera con il rosso semitrasparente (4° numero del rgb)
+                    #blend_rgba_mult 'somma' i colori dei pixel sottostanti
+                    red_overlay.fill((255, 0, 0, 120), special_flags=pygame.BLEND_RGBA_MULT)
+                    screen.blit(red_overlay, (e[0], e[1]))
+            
 
             # --- DISEGNO SAMURAI ---
             screen.blit(current_frames[int(frame_index) % len(current_frames)], (px, py))
@@ -481,5 +510,7 @@ def main() -> None:
     pygame.quit()
     sys.exit()
 
+
+# --- PROVA DEL GIOCO ---
 if __name__ == "__main__":
     main()
