@@ -90,6 +90,9 @@ def spawn_one(entry, enemies, SCREEN_W, SCREEN_H):
         else:
             ey = SCREEN_H
     enemies.append([ex, ey, entry[1], entry[0], entry[3], entry[4], 0.0, entry[2]])
+    
+#---------------------------------------------------------------------------------------#
+#funzione run del gioco
 
 def main() -> None:
     pygame.init()
@@ -119,7 +122,8 @@ def main() -> None:
     KNIFE_COOLDOWN = 18
     KNIFE_LENGTH   = 18
     KNIFE_WIDTH    = 3
-
+    KNIFE_MAX_RANGE = 300
+    
     # --- COSTANTI ORDE ---
     PAUSE_DURATION = 4000
     SPAWN_INTERVAL = 400
@@ -266,7 +270,9 @@ def main() -> None:
                 vy = math.sin(angle) * KNIFE_SPEED
                 surf = make_knife_surface(angle, KNIFE_LENGTH, KNIFE_WIDTH)
                 hs   = surf.get_width() // 2
-                knives.append([pg_cx, pg_cy, vx, vy, surf, hs])
+                
+                #l'ultimo elemento è il contatore della distanza percorsa dal coltello
+                knives.append([pg_cx, pg_cy, vx, vy, surf, hs, 0])
 
             # --- AGGIORNA ORB ---
             #calcolo angolazione della orb
@@ -295,8 +301,10 @@ def main() -> None:
 
             # --- AGGIORNA COLTELLI ---
             for k in knives.copy():
-                k[0] += k[2]; k[1] += k[3]
-                if k[0] < -60 or k[0] > SCREEN_W+60 or k[1] < -60 or k[1] > SCREEN_H+60:
+                k[0] += k[2]
+                k[1] += k[3]
+                k[6] += KNIFE_SPEED #aggiorno distanza percorsa
+                if k[0] < -60 or k[0] > SCREEN_W+60 or k[1] < -60 or k[1] > SCREEN_H+60 or k[6] >= KNIFE_MAX_RANGE:
                     knives.remove(k)
 
             # --- MACCHINA A STATI ORDE ---
