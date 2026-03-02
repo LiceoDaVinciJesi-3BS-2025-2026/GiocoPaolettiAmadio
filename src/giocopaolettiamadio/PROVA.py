@@ -103,9 +103,30 @@ def main() -> None:
     # FINESTRA
     SCREEN_W, SCREEN_H = 1344, 768
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-    pygame.display.set_caption("Phoenix Quest - Defend the Shrine")
+    pygame.display.set_caption("Crimson Guard")
     clock = pygame.time.Clock()
+        # ================== SCHERMATA INIZIALE ==================
+    start_screen_img = pygame.image.load("schermataI.png").convert_alpha()
+    start_screen_img = pygame.transform.scale(start_screen_img, (SCREEN_W, SCREEN_H))
 
+    START_BUTTON_RECT = pygame.Rect(522, 600, 300, 90)
+
+    in_start_screen = True
+
+    while in_start_screen:
+        clock.tick(60)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if START_BUTTON_RECT.collidepoint(event.pos):
+                    in_start_screen = False
+
+        screen.blit(start_screen_img, (0, 0))
+        pygame.display.flip()
     # --- COSTANTI PERSONAGGIO ---
     FRAME_SIZE_samurai = 256
     ANIM_SPEED  = 0.15
@@ -135,7 +156,10 @@ def main() -> None:
     # --- COSTANTI IN GIOCO ---
     #durata animazione danno nemico
     HIT_FLASH_DURATION = 8
-    
+
+
+
+
     
     # --- CARICAMENTO ASSET ---
     backstage = pygame.image.load("arenaRettangolare.png").convert_alpha()
@@ -514,3 +538,4 @@ def main() -> None:
 # --- PROVA DEL GIOCO ---
 if __name__ == "__main__":
     main()
+
