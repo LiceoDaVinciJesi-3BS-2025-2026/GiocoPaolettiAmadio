@@ -216,7 +216,7 @@ def main() -> None:
         while in_start_screen:
             clock.tick(60)
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -497,6 +497,7 @@ def main() -> None:
                             classifica     = carica_classifica()
                             inserimento_ok = True
                         elif event.key == pygame.K_BACKSPACE:
+                            # --- cancella in inserimento ---
                             nickname = nickname[:-1]
                         else:
                             if len(nickname) < 16 and event.unicode.isprintable():
@@ -567,20 +568,30 @@ def main() -> None:
                     f"Durata:            {minuti:02d}:{secondi:02d}",
                     f"Coltelli lanciati: {coltelli_sparati}",
                 ]
-                for i, riga in enumerate(stats):
+                i = 0
+                for riga in stats:
                     s = font_small.render(riga, True, (210, 210, 210))
                     screen.blit(s, (80, 165 + i * 32))
-
+                    i += 1
+                    
                 # separatore verticale
-                pygame.draw.line(screen, (120, 120, 120), (cx - 20, 120), (cx - 20, SCREEN_H - 80), 1)
+                pygame.draw.line(screen, (120, 120, 120), (cx - 320, 120), (cx - 320, SCREEN_H - 80), 1)
 
                 # ultime partite (colonna destra)
                 storico_txt = font_health.render("Ultime partite:", True, (180, 220, 255))
-                screen.blit(storico_txt, (cx, 130))
-                for i, riga in enumerate(classifica):
-                    colore = (255, 255, 100) if nickname.strip() in riga else (200, 200, 200)
+                screen.blit(storico_txt, (cx -300, 130))
+                i = 0
+                for riga in classifica:
+                    #se il nickname del giocatore è già presente, evidenzio le partite in giallo. altrimenti è grigio
+                    if nickname.strip() in riga:
+                        colore = (255, 255, 100)
+                    else:
+                        colore = (200, 200, 200)
+                        
                     s = font_small.render(riga, True, colore)
-                    screen.blit(s, (cx, 165 + i * 34))
+                    screen.blit(s, (cx - 300, 165 + i * 34))
+                    i += 1
+                    
 
                 # istruzioni
                 hint = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
