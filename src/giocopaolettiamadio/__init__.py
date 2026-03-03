@@ -107,7 +107,7 @@ def main() -> None:
     clock = pygame.time.Clock()
 
     # ================== SCHERMATA INIZIALE (caricata una volta sola) ==================
-    start_screen_img = pygame.image.load("crimsonguard.png").convert_alpha()
+    start_screen_img = pygame.image.load("materiali\Crimsonguard.png").convert_alpha()
     start_screen_img = pygame.transform.scale(start_screen_img, (SCREEN_W, SCREEN_H))
     START_BUTTON_RECT = pygame.Rect(522, 600, 300, 90)
 
@@ -139,18 +139,18 @@ def main() -> None:
     # --- COSTANTI IN GIOCO ---
     HIT_FLASH_DURATION = 8
 
-    # --- CARICAMENTO ASSET (una volta sola) ---
-    backstage = pygame.image.load("arenaRettangolare.png").convert_alpha()
+    # --- CARICAMENTO ASSET  ---
+    backstage = pygame.image.load("materiali\StageRettangolare.png").convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
     
-    shrine_75 = pygame.image.load("tempio75hpRifilato.png").convert_alpha()
+    shrine_75 = pygame.image.load("materiali\Tempio75hpRifilato.png").convert_alpha()
     shrine_75 = pygame.transform.scale(shrine_75, (int(shrine_75.get_width()*0.5), int(shrine_75.get_height()*0.5)))
     shrine_rect = shrine_75.get_rect(center = (SCREEN_W//2, SCREEN_H//2))
 
-    shrine_100 = load_shrine_state("tempio1nosfondo.png", shrine_rect)
-    shrine_50  = load_shrine_state("tempio50hpRifilato.png", shrine_rect)
-    shrine_25  = load_shrine_state("tempio25hpRifilato.png", shrine_rect)
-    shrine_0   = load_shrine_state("tempio0hpRifilato.png", shrine_rect)
+    shrine_100 = load_shrine_state("materiali\Tempio1nosfondo.png", shrine_rect)
+    shrine_50  = load_shrine_state("materiali\Tempio50hpRifilato.png", shrine_rect)
+    shrine_25  = load_shrine_state("materiali\Tempio25hpRifilato.png", shrine_rect)
+    shrine_0   = load_shrine_state("materiali\Tempio0hpRifilato.png", shrine_rect)
 
     def get_shrine_img(hp):
         if   hp > 75: return shrine_100
@@ -160,24 +160,24 @@ def main() -> None:
         return shrine_0
 
     # --- CARICAMENTO SAMURAI ---
-    frames_idle_right = get_samurai_frames("Samurai-idle-v1.png", FRAME_SIZE_samurai)
+    frames_idle_right = get_samurai_frames("materiali\Samurai-idle-v1.png", FRAME_SIZE_samurai)
     frames_idle_left  = [pygame.transform.flip(f, True, False) for f in frames_idle_right]
 
-    frames_walk_up    = get_samurai_frames("SamuraiUpgiusto.png",   FRAME_SIZE_samurai)
-    frames_walk_down  = get_samurai_frames("SamuraiDowngiusto.png", FRAME_SIZE_samurai)
-    frames_walk_right = get_samurai_frames("SamuraiDxgiusto.png",   FRAME_SIZE_samurai)
+    frames_walk_up    = get_samurai_frames("materiali\SamuraiUpgiusto.png",   FRAME_SIZE_samurai)
+    frames_walk_down  = get_samurai_frames("materiali\SamuraiDowngiusto.png", FRAME_SIZE_samurai)
+    frames_walk_right = get_samurai_frames("materiali\SamuraiDxgiusto.png",   FRAME_SIZE_samurai)
     frames_walk_left  = [pygame.transform.flip(f, True, False) for f in frames_walk_right]
 
-    frames_run_up    = get_samurai_frames("SamuraiRunUpgiusto.png",   FRAME_SIZE_samurai)
-    frames_run_down  = get_samurai_frames("SamuraiRunDowngiusto.png", FRAME_SIZE_samurai)
-    frames_run_right = get_samurai_frames("SamuraiRunDxgiusto.png",   FRAME_SIZE_samurai)
+    frames_run_up    = get_samurai_frames("materiali\SamuraiRunUpgiusto.png",   FRAME_SIZE_samurai)
+    frames_run_down  = get_samurai_frames("materiali\SamuraiRunDowngiusto.png", FRAME_SIZE_samurai)
+    frames_run_right = get_samurai_frames("materiali\SamuraiRunDxgiusto.png",   FRAME_SIZE_samurai)
     frames_run_left  = [pygame.transform.flip(f, True, False) for f in frames_run_right]
 
     # --- CARICAMENTO NEMICI ---
-    slime_sheet  = pygame.image.load("SlimeSpriteSheet.png").convert_alpha()
+    slime_sheet  = pygame.image.load("materiali\SlimeSpriteSheet.png").convert_alpha()
     frames_slime = rescale_frames(load_frames(slime_sheet, 1, 4, 32, 32), 2.5)
 
-    dragon_sheet        = pygame.image.load("Baby_Dragon_2D.png").convert_alpha()
+    dragon_sheet        = pygame.image.load("materiali\Baby_Dragon_2D.png").convert_alpha()
     frames_dragon_left  = rescale_frames(load_frames(dragon_sheet, 2, 2, 64, 64), 2.5)
     frames_dragon_right = [pygame.transform.flip(f, True, False) for f in frames_dragon_left]
 
@@ -196,6 +196,7 @@ def main() -> None:
             clock.tick(60)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    #uscita completa dal gioco
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -231,8 +232,9 @@ def main() -> None:
         # ================== LOOP PRINCIPALE ==================
         while running:
             dt = clock.tick(60)
-
+            
             for event in pygame.event.get():
+                #uscita dal gioco
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
@@ -241,10 +243,14 @@ def main() -> None:
                     sys.exit()
 
             if not game_over:
-                keys       = pygame.key.get_pressed()
+                keys = pygame.key.get_pressed()
                 is_walking = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-                speed      = SPEED_WALK if is_walking else SPEED_RUN
-                moved      = False
+                if is_walking:
+                    speed = SPEED_WALK
+                else:
+                    speed = SPEED_RUN
+                    
+                moved = False
 
                 # --- MOVIMENTO ---
                 if keys[pygame.K_w] or keys[pygame.K_UP]:
@@ -448,10 +454,13 @@ def main() -> None:
         while game_over:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    #uscita completa dalla finestra
                     pygame.quit()
                     sys.exit()
+                    
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
+                        #uscita completa dalla finestra
                         pygame.quit()
                         sys.exit()
                     if event.key == pygame.K_SPACE:
