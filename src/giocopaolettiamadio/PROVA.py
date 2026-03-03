@@ -375,8 +375,8 @@ def main() -> None:
                 ecy = enemy[1] + enemy[5] / 2
                 
                 #dist6anza del nemico dallo shrine
-                dx   = shrine_rect.centerx - enemy[0]
-                dy   = shrine_rect.centery - enemy[1]
+                dx   = shrine_rect.centerx - ecx
+                dy   = shrine_rect.centery - ecy
                 dist = math.hypot(dx, dy)
 
                 if dist > 60:
@@ -508,8 +508,10 @@ def main() -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_over = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                game_over = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    game_over = False
+                
         
         # --- DISEGNO SFONDO ---
         screen.blit(backstage, (0, 0))
@@ -540,4 +542,4 @@ def main() -> None:
 # --- PROVA DEL GIOCO ---
 if __name__ == "__main__":
     main()
-
+    
