@@ -2,6 +2,8 @@ import pygame
 import sys
 import math
 import random
+import datetime
+import os
 
 # --- FUNZIONI DI SUPPORTO ---
 def load_frames(sheet, ROWS, COLS, FRAME_SIZE_W, FRAME_SIZE_H=None):
@@ -94,6 +96,25 @@ def spawn_one(entry, enemies, SCREEN_W, SCREEN_H):
     #8. contatore anim. danno
     enemies.append([ex, ey, entry[1], entry[0], entry[3], entry[4], 0.0, entry[2], 0])
     
+CLASSIFICA_FILE = "classifica.txt"
+
+def salva_partita(nickname, wave, nemici, durata_sec, coltelli):
+    """Aggiunge una riga al file classifica.txt"""
+    data = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+    minuti = int(durata_sec // 60)
+    secondi = int(durata_sec % 60)
+    riga = f"{data} | {nickname:<12} | Wave: {wave:>3} | Nemici: {nemici:>4} | Durata: {minuti:02d}:{secondi:02d} | Coltelli: {coltelli:>4}\n"
+    with open(CLASSIFICA_FILE, "a", encoding="utf-8") as f:
+        f.write(riga)
+
+def carica_classifica(max_righe=8):
+    """Legge le ultime max_righe dal file classifica"""
+    if not os.path.exists(CLASSIFICA_FILE):
+        return []
+    with open(CLASSIFICA_FILE, "r", encoding="utf-8") as f:
+        righe = f.readlines()
+    return [r.rstrip("\n") for r in righe[-max_righe:]]
+
 #---------------------------------------------------------------------------------------#
 #funzione run del gioco
 
@@ -139,7 +160,7 @@ def main() -> None:
     # --- COSTANTI IN GIOCO ---
     HIT_FLASH_DURATION = 8
 
-    # --- CARICAMENTO ASSET  ---
+    # --- CARICAMENTO ASSET (una volta sola) ---
     backstage = pygame.image.load("materiali\StageRettangolare.png").convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
     
@@ -196,7 +217,6 @@ def main() -> None:
             clock.tick(60)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    #uscita completa dal gioco
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -229,12 +249,16 @@ def main() -> None:
         running   = True
         game_over = False
 
+        # --- STATISTICHE PARTITA ---
+        nemici_uccisi  = 0
+        coltelli_sparati = 0
+        tempo_inizio   = pygame.time.get_ticks()
+
         # ================== LOOP PRINCIPALE ==================
         while running:
             dt = clock.tick(60)
-            
+
             for event in pygame.event.get():
-                #uscita dal gioco
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
@@ -243,14 +267,10 @@ def main() -> None:
                     sys.exit()
 
             if not game_over:
-                keys = pygame.key.get_pressed()
+                keys       = pygame.key.get_pressed()
                 is_walking = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-                if is_walking:
-                    speed = SPEED_WALK
-                else:
-                    speed = SPEED_RUN
-                    
-                moved = False
+                speed      = SPEED_WALK if is_walking else SPEED_RUN
+                moved      = False
 
                 # --- MOVIMENTO ---
                 if keys[pygame.K_w] or keys[pygame.K_UP]:
@@ -290,6 +310,7 @@ def main() -> None:
                     surf = make_knife_surface(angle, KNIFE_LENGTH, KNIFE_WIDTH)
                     hs   = surf.get_width() // 2
                     knives.append([pg_cx, pg_cy, vx, vy, surf, hs, 0])
+                    coltelli_sparati += 1
 
                 # --- AGGIORNA ORB ---
                 orb_angle += ORB_SPEED * (dt / 1000.0)
@@ -346,8 +367,8 @@ def main() -> None:
                     ecx = enemy[0] + enemy[4] / 2
                     ecy = enemy[1] + enemy[5] / 2
 
-                    dx   = shrine_rect.centerx - enemy[0]
-                    dy   = shrine_rect.centery - enemy[1]
+                    dx   = shrine_rect.centerx - ecx
+                    dy   = shrine_rect.centery - ecy
                     dist = math.hypot(dx, dy)
 
                     if dist > 60:
@@ -390,12 +411,14 @@ def main() -> None:
 
                     if enemy[2] <= 0 and enemy in enemies:
                         enemies.remove(enemy)
+                        nemici_uccisi += 1
 
                 # Controllo game over
                 if shrine_current_hp <= 0:
                     shrine_current_hp = 0
                     running   = False
                     game_over = True
+                    durata_sec = (pygame.time.get_ticks() - tempo_inizio) / 1000.0
 
                 # --- DISEGNO COLTELLI ---
                 for k in knives:
@@ -450,44 +473,120 @@ def main() -> None:
 
             pygame.display.flip()
 
-        # ================== GAME OVER ==================
+        # ================== GAME OVER: inserimento nickname ==================
+        nickname       = ""
+        salvato        = False
+        classifica     = []
+        inserimento_ok = False  # diventa True dopo INVIO
+
         while game_over:
+            clock.tick(60)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    #uscita completa dalla finestra
+                    #uscita#
                     pygame.quit()
                     sys.exit()
-                    
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        #uscita completa dalla finestra
-                        pygame.quit()
-                        sys.exit()
-                    if event.key == pygame.K_SPACE:
-                        # esce dal while game_over → riparte il while True esterno
-                        game_over = False  
+                    if not inserimento_ok:
+                        # --- fase di digitazione nickname ---
+                        if event.key == pygame.K_RETURN and nickname.strip():
+                            # salva e carica classifica
+                            salva_partita(nickname.strip(), current_wave,
+                                          nemici_uccisi, durata_sec, coltelli_sparati)
+                            classifica     = carica_classifica()
+                            inserimento_ok = True
+                        elif event.key == pygame.K_BACKSPACE:
+                            nickname = nickname[:-1]
+                        else:
+                            if len(nickname) < 16 and event.unicode.isprintable():
+                                nickname += event.unicode
+                    else:
+                        # --- fase di visualizzazione risultati ---
+                        if event.key == pygame.K_ESCAPE:
+                            pygame.quit()
+                            sys.exit()
+                        if event.key == pygame.K_SPACE:
+                            game_over = False  # torna al while True esterno
 
             # --- DISEGNO SFONDO ---
             screen.blit(backstage, (0, 0))
             shrine_img = get_shrine_img(shrine_current_hp)
             screen.blit(shrine_img, (shrine_rect.x, shrine_rect.y + (shrine_75.get_height() - shrine_img.get_height())))
-
-            # --- DISEGNO SAMURAI ---
             screen.blit(current_frames[int(frame_index) % len(current_frames)], (px, py))
 
-            # Scurisce leggermente lo schermo
+            # overlay scuro
             overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 100))
+            overlay.fill((0, 0, 0, 160))
             screen.blit(overlay, (0, 0))
 
-            # Testo game over
-            over_txt = font_health.render("SHRINE DESTROYED!", True, (255, 50, 50))
-            screen.blit(over_txt, (SCREEN_W//2 - over_txt.get_width()//2, SCREEN_H//2 - 30))
-            hint_txt = font_health.render("SPAZIO per ricominciare  |  ESC per uscire", True, (220, 220, 220))
-            screen.blit(hint_txt, (SCREEN_W//2 - hint_txt.get_width()//2, SCREEN_H//2 + 20))
+            cx = SCREEN_W // 2
+
+            if not inserimento_ok:
+                # --- SCHERMATA INSERIMENTO NICKNAME ---
+                over_txt = font_wave.render("SHRINE DESTROYED!", True, (255, 50, 50))
+                screen.blit(over_txt, (cx - over_txt.get_width()//2, 80))
+
+                minuti  = int(durata_sec // 60)
+                secondi = int(durata_sec % 60)
+                stats = [
+                    f"Wave raggiunta:   {current_wave}",
+                    f"Nemici uccisi:    {nemici_uccisi}",
+                    f"Durata partita:   {minuti:02d}:{secondi:02d}",
+                    f"Coltelli lanciati: {coltelli_sparati}",
+                ]
+                for i, riga in enumerate(stats):
+                    s = font_health.render(riga, True, (220, 220, 180))
+                    screen.blit(s, (cx - s.get_width()//2, 200 + i * 44))
+
+                prompt = font_health.render("Inserisci il tuo nome e premi INVIO:", True, (255, 230, 80))
+                screen.blit(prompt, (cx - prompt.get_width()//2, 420))
+
+                # box nickname
+                box_rect = pygame.Rect(cx - 180, 465, 360, 44)
+                pygame.draw.rect(screen, (60, 60, 80), box_rect, border_radius=6)
+                pygame.draw.rect(screen, (200, 200, 100), box_rect, 2, border_radius=6)
+                cursore = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
+                nick_surf = font_health.render(nickname + cursore, True, (255, 255, 255))
+                screen.blit(nick_surf, (box_rect.x + 10, box_rect.y + 8))
+
+            else:
+                # --- SCHERMATA CLASSIFICA ---
+                titolo = font_wave.render("CLASSIFICA", True, (255, 220, 60))
+                screen.blit(titolo, (cx - titolo.get_width()//2, 40))
+
+                # statistiche ultima partita (riquadro a sinistra)
+                minuti  = int(durata_sec // 60)
+                secondi = int(durata_sec % 60)
+                tua_txt = font_health.render("La tua partita:", True, (180, 220, 255))
+                screen.blit(tua_txt, (80, 130))
+                stats = [
+                    f"Nickname:          {nickname.strip()}",
+                    f"Wave raggiunta:    {current_wave}",
+                    f"Nemici uccisi:     {nemici_uccisi}",
+                    f"Durata:            {minuti:02d}:{secondi:02d}",
+                    f"Coltelli lanciati: {coltelli_sparati}",
+                ]
+                for i, riga in enumerate(stats):
+                    s = font_small.render(riga, True, (210, 210, 210))
+                    screen.blit(s, (80, 165 + i * 32))
+
+                # separatore verticale
+                pygame.draw.line(screen, (120, 120, 120), (cx - 20, 120), (cx - 20, SCREEN_H - 80), 1)
+
+                # ultime partite (colonna destra)
+                storico_txt = font_health.render("Ultime partite:", True, (180, 220, 255))
+                screen.blit(storico_txt, (cx, 130))
+                for i, riga in enumerate(classifica):
+                    colore = (255, 255, 100) if nickname.strip() in riga else (200, 200, 200)
+                    s = font_small.render(riga, True, colore)
+                    screen.blit(s, (cx, 165 + i * 34))
+
+                # istruzioni
+                hint = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
+                screen.blit(hint, (cx - hint.get_width()//2, SCREEN_H - 50))
 
             pygame.display.flip()
-            clock.tick(60)
 
         # game_over == False → il while True esterno riparte dalla schermata iniziale
 
