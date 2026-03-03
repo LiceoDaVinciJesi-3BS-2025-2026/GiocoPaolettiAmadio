@@ -1,420 +1,542 @@
-def main() -> None:
-    import pygame
-    import sys
+import pygame
+import sys
+import math
+import random
 
+# --- FUNZIONI DI SUPPORTO ---
+def load_frames(sheet, ROWS, COLS, FRAME_SIZE_W, FRAME_SIZE_H=None):
+    frames = []
+    if FRAME_SIZE_H is None:
+        FRAME_SIZE_H = FRAME_SIZE_W
+    for row in range(ROWS):
+        for col in range(COLS):
+            rect = pygame.Rect(col * FRAME_SIZE_W, row * FRAME_SIZE_H, FRAME_SIZE_W, FRAME_SIZE_H)
+            frames.append(sheet.subsurface(rect))
+    return frames
+
+def rescale_frames(lista_frames, fattore):
+    return [pygame.transform.scale(f, (int(f.get_width()*fattore), int(f.get_height()*fattore))) for f in lista_frames]
+
+def load_shrine_state(filename, shrine_rect):
+    img = pygame.image.load(filename).convert_alpha()
+    scale_factor = shrine_rect.width / img.get_width()
+    return pygame.transform.scale(img, (shrine_rect.width, int(img.get_height() * scale_factor)))
+
+def get_samurai_frames(filename, FRAME_SIZE_samurai):
+    sheet = pygame.image.load(filename).convert_alpha()
+    return rescale_frames(load_frames(sheet, 5, 5, FRAME_SIZE_samurai), 0.5)
+
+def make_knife_surface(angle_rad, KNIFE_LENGTH, KNIFE_WIDTH):
+    size = KNIFE_LENGTH * 2 + 4
+    surf = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx, cy = size // 2, size // 2
+    cos_a  = math.cos(angle_rad)
+    sin_a  = math.sin(angle_rad)
+    hw, hl = KNIFE_WIDTH, KNIFE_LENGTH
+    pts = [
+        (cx + cos_a*hl - sin_a*hw,  cy + sin_a*hl + cos_a*hw),
+        (cx + cos_a*hl + sin_a*hw,  cy + sin_a*hl - cos_a*hw),
+        (cx - cos_a*hl + sin_a*hw,  cy - sin_a*hl - cos_a*hw),
+        (cx - cos_a*hl - sin_a*hw,  cy - sin_a*hl + cos_a*hw),
+    ]
+    pygame.draw.polygon(surf, (190, 210, 230), pts)
+    pygame.draw.polygon(surf, (240, 250, 255), pts, 1)
+    pygame.draw.circle(surf, (255, 255, 255), (int(cx + cos_a*hl), int(cy + sin_a*hl)), 2)
+    h_pts = [
+        (cx - cos_a*hl        - sin_a*(hw+2),  cy - sin_a*hl        + cos_a*(hw+2)),
+        (cx - cos_a*hl        + sin_a*(hw+2),  cy - sin_a*hl        - cos_a*(hw+2)),
+        (cx - cos_a*(hl-5)    + sin_a*(hw+2),  cy - sin_a*(hl-5)    - cos_a*(hw+2)),
+        (cx - cos_a*(hl-5)    - sin_a*(hw+2),  cy - sin_a*(hl-5)    + cos_a*(hw+2)),
+    ]
+    pygame.draw.polygon(surf, (100, 70, 40), h_pts)
+    return surf
+
+# --- SISTEMA ORDE ---
+def calcola_orda(wave_num):
+    totale      = 4 + (wave_num - 1) * 2
+    prob_dragon = min(0.1 + (wave_num - 1) * 0.1, 0.7)
+    hp_mult     = 1.0 + (wave_num - 1) * 0.2
+    params = [totale, prob_dragon, hp_mult]
+    return params
+
+def build_spawn_queue(params):
+    queue = []
+    for coso in range(params[0]):
+        e_type = 'dragon' if random.random() < params[1] else 'slime'
+        if e_type == 'slime':
+            hp = int(30 * params[2]); espeed = 2.0; e_w, e_h = 80,  80
+        else:
+            hp = int(50 * params[2]); espeed = 1.2; e_w, e_h = 160, 160
+        queue.append([e_type, hp, espeed, e_w, e_h])
+    return queue
+
+def spawn_one(entry, enemies, SCREEN_W, SCREEN_H):
+    side = random.choice(['T', 'B', 'L', 'R'])
+    # Calcolo coordinata X
+    if side in ['T', 'B']:
+        ex = random.randint(0, SCREEN_W)
+    else:
+        if side == 'L':
+            ex = 0
+        else:
+            ex = SCREEN_W
+
+    # Calcolo coordinata Y
+    if side in ['L', 'R']:
+        ey = random.randint(0, SCREEN_H)
+    else:
+        if side == 'T':
+            ey = 0
+        else:
+            ey = SCREEN_H
+            
+    #aggiungo le informazioni sul nemico alla lista completa
+    #8. contatore anim. danno
+    enemies.append([ex, ey, entry[1], entry[0], entry[3], entry[4], 0.0, entry[2], 0])
+    
+#---------------------------------------------------------------------------------------#
+#funzione run del gioco
+
+def main() -> None:
     pygame.init()
     
-    #nascondiamo il mouse
-    pygame.mouse.set_visible(False)
     # FINESTRA
     SCREEN_W, SCREEN_H = 1344, 768
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-    pygame.display.set_caption("Samurai + Luce iniziale + Fenice")
+    pygame.display.set_caption("Crimson Guard")
     clock = pygame.time.Clock()
-    
-    
-    
-    # --- FUNZIONI DI SUPPORTO ---
+        # ================== SCHERMATA INIZIALE ==================
+    start_screen_img = pygame.image.load("schermataI.png").convert_alpha()
+    start_screen_img = pygame.transform.scale(start_screen_img, (SCREEN_W, SCREEN_H))
 
-    def load_frames(sheet, ROWS, COLS, FRAME_SIZE):
-        frames = []
-        for row in range(ROWS):
-            for col in range(COLS):
-                x = col * FRAME_SIZE
-                y = row * FRAME_SIZE
-                rect = pygame.Rect(x, y, FRAME_SIZE, FRAME_SIZE)
-                #ritaglio una superficie dell'intero foglio
-                frames.append(sheet.subsurface(rect))
-        return frames
+    START_BUTTON_RECT = pygame.Rect(522, 600, 300, 90)
 
-    def rescale_frames(lista_frames, fattore):
-        frames = []
-        for frame in lista_frames:
-            w, h = frame.get_size()
-            frame = pygame.transform.scale(frame, (int(w*fattore), int(h*fattore)))
-            frames.append(frame)
-        return frames
-    
-    
-    # ========== FUNZIONE UNIVERSALE PER CARICARE MOSTRI ==========
-    def load_monster(
-        idle_path, idle_rows, idle_cols, idle_frame_size,
-        walk_up_path, walk_up_rows, walk_up_cols, walk_up_frame_size,
-        walk_down_path, walk_down_rows, walk_down_cols, walk_down_frame_size,
-        walk_right_path, walk_right_rows, walk_right_cols, walk_right_frame_size,
-        scale_factor=1.0
+    in_start_screen = True
 
-    ):
-        """
-        Carica tutte le animazioni di un mostro con configurazioni flessibili.
-        
-        Parametri obbligatori:
-        - idle_path: percorso sprite sheet idle
-        - idle_rows, idle_cols, idle_frame_size: configurazione sprite idle
-        - walk_up/down/right_path: percorsi sprite sheet movimento
-        - walk_up/down/right_rows, cols, frame_size: configurazioni sprite movimento
-        - scale_factor: fattore di ridimensionamento (default 1.0)
-        
-
-        
-        Ritorna una lista con 8 elementi (o 12 se ha animazioni di corsa):
-        [0] frames_idle_right
-        [1] frames_idle_left
-        [2] frames_walk_up
-        [3] frames_walk_down
-        [4] frames_walk_right
-        [5] frames_walk_left
-
-        """
-        
-        # Carica IDLE
-        sheet_idle = pygame.image.load(idle_path).convert_alpha()
-        frames_idle_right = load_frames(sheet_idle, idle_rows, idle_cols, idle_frame_size)
-        frames_idle_right = rescale_frames(frames_idle_right, scale_factor)
-        
-        frames_idle_left = []
-        for frame in frames_idle_right:
-            flipped_frame = pygame.transform.flip(frame, True, False)
-            frames_idle_left.append(flipped_frame)
-        
-        # Carica WALK UP
-        sheet_walk_up = pygame.image.load(walk_up_path).convert_alpha()
-        frames_walk_up = load_frames(sheet_walk_up, walk_up_rows, walk_up_cols, walk_up_frame_size)
-        frames_walk_up = rescale_frames(frames_walk_up, scale_factor)
-        
-        # Carica WALK DOWN
-        sheet_walk_down = pygame.image.load(walk_down_path).convert_alpha()
-        frames_walk_down = load_frames(sheet_walk_down, walk_down_rows, walk_down_cols, walk_down_frame_size)
-        frames_walk_down = rescale_frames(frames_walk_down, scale_factor)
-        
-        # Carica WALK RIGHT
-        sheet_walk_right = pygame.image.load(walk_right_path).convert_alpha()
-        frames_walk_right = load_frames(sheet_walk_right, walk_right_rows, walk_right_cols, walk_right_frame_size)
-        frames_walk_right = rescale_frames(frames_walk_right, scale_factor)
-        
-        # Carica WALK LEFT (flip di right)
-        frames_walk_left = []
-        for frame in frames_walk_right:
-            flipped_frame = pygame.transform.flip(frame, True, False)
-            frames_walk_left.append(flipped_frame)
-        
-
-        
-        return [
-            frames_idle_right,   # 0
-            frames_idle_left,    # 1
-            frames_walk_up,      # 2
-            frames_walk_down,    # 3
-            frames_walk_right,   # 4
-            frames_walk_left,    # 5
-
-        ]
-    
-    
-    # ========== FUNZIONE SEMPLIFICATA PER MOSTRI SOLO IDLE ==========
-    def load_monster_idle_only(idle_path, idle_rows, idle_cols, idle_frame_size, scale_factor=1.0):
-        """
-        Carica solo l'animazione idle per mostri statici.
-        Ritorna [frames_idle_right, frames_idle_left]
-        """
-        try:
-            sheet_idle = pygame.image.load(idle_path).convert_alpha()
-            print(f"Caricato {idle_path}: {sheet_idle.get_width()}x{sheet_idle.get_height()}")
-            print(f"Frame size richiesto: {idle_frame_size}, Righe: {idle_rows}, Colonne: {idle_cols}")
-            
-            frames_idle_right = load_frames(sheet_idle, idle_rows, idle_cols, idle_frame_size)
-            print(f"Frames estratti: {len(frames_idle_right)}")
-            
-            frames_idle_right = rescale_frames(frames_idle_right, scale_factor)
-            
-            frames_idle_left = []
-            for frame in frames_idle_right:
-                flipped_frame = pygame.transform.flip(frame, True, False)
-                frames_idle_left.append(flipped_frame)
-            
-            return [frames_idle_right, frames_idle_left]
-        except Exception as e:
-            print(f"ERRORE nel caricamento di {idle_path}: {e}")
-            raise
-    
-    
-    # ========== CARICAMENTO MOSTRI CON FUNZIONE UNIVERSALE ==========
-    
-    # --- CARICAMENTO SPRITE SLIME ---
-    slime_animations = load_monster_idle_only('SlimeSpriteSheet.png', 1, 4, 32, scale_factor=2.0)
-    slime_idle_right = slime_animations[0]
-    slime_idle_left = slime_animations[1]
-    slime_frame_index = 0
-    slime_anim_speed = 0.10
-    
-    # --- CARICAMENTO SPRITE BABY DRAGON ---
-    dragon_animations = load_monster_idle_only('Baby_Dragon_2D.png', 2, 2, 64, scale_factor=3.0)
-    dragon_idle_right = dragon_animations[0]
-    dragon_idle_left = dragon_animations[1]
-    dragon_frame_index = 0
-    dragon_anim_speed = 0.08
-    dragon_x, dragon_y = 900, 400
-    
-    # --- CARICAMENTO SPRITE ARCH DEMON ---
-    demon_animations = load_monster_idle_only('ArchDemonIdle001-Sheet.png', 1, 6, 128, scale_factor=1.5)
-    demon_idle_right = demon_animations[0]
-    demon_idle_left = demon_animations[1]
-    demon_frame_index = 0
-    demon_anim_speed = 0.12
-    demon_x, demon_y = 200, 450
-           
-    
-    
-    # COSTANTI SPRITE PERSONAGGIO
-    COLS_samurai = 5
-    ROWS_samurai = 5
-    FRAME_SIZE_samurai = 256
-    ANIM_SPEED = 0.15
-    SPEED_WALK = 4
-    SPEED_RUN = 8
-    Side_pg = 'R'
-
-    # --- CARICAMENTO SFONDO --- 
-    backstage = pygame.image.load("arenavuota.png").convert_alpha()
-    backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
-    
-    # --- CARICAMENTO SPRITE SAMURAI (CODICE ORIGINALE) ---
-    sheet_idle = pygame.image.load("Samurai-idle-v1.png").convert_alpha()
-    sheet_up = pygame.image.load("SamuraiUpgiusto.png").convert_alpha()
-    sheet_down = pygame.image.load("SamuraiDowngiusto.png").convert_alpha()
-    sheet_right = pygame.image.load("SamuraiDxgiusto.png").convert_alpha()
-
-    sheet_run_up = pygame.image.load("SamuraiRunUpgiusto.png").convert_alpha()
-    sheet_run_down = pygame.image.load("SamuraiRunDowngiusto.png").convert_alpha()
-    sheet_run_right = pygame.image.load("SamuraiRunDxgiusto.png").convert_alpha()
-
-    frames_idle_right= load_frames(sheet_idle, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
-    frames_idle_right = rescale_frames(frames_idle_right, 0.5)
-    frames_idle_left = []
-    flip_x = True
-    flip_y = False
-    for frame in frames_idle_right:
-        flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
-        frames_idle_left.append(flipped_frame)
-    
-    
-    frames_walk_up = load_frames(sheet_up, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
-    frames_walk_up = rescale_frames(frames_walk_up, 0.5)
-    frames_walk_down = load_frames(sheet_down, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
-    frames_walk_down = rescale_frames(frames_walk_down, 0.5)
-    frames_walk_right = load_frames(sheet_right, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
-    frames_walk_right = rescale_frames(frames_walk_right, 0.5)
-
-    frames_walk_left = []
-    for frame in frames_walk_right:
-        flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
-        frames_walk_left.append(flipped_frame)
-
-    frames_run_up = load_frames(sheet_run_up, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
-    frames_run_up = rescale_frames(frames_run_up, 0.5)
-    frames_run_down = load_frames(sheet_run_down, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
-    frames_run_down = rescale_frames(frames_run_down, 0.5)
-    frames_run_right = load_frames(sheet_run_right, ROWS_samurai, COLS_samurai, FRAME_SIZE_samurai)
-    frames_run_right = rescale_frames(frames_run_right, 0.5)
-
-    frames_run_left = []
-    for frame in frames_run_right:
-        flipped_frame = pygame.transform.flip(frame, flip_x, flip_y)
-        frames_run_left.append(flipped_frame)
-
-
-    # --- CARICAMENTO SPRITE FENICE (CODICE ORIGINALE) ---
-    phoenix_sheet = []
-    scale_factor_phoenix = 3  # ingrandimento della fenice
-
-    for num in range(1,5):
-        phoenix_a = pygame.image.load(f"{num}rett.png").convert_alpha()
-        w, h = phoenix_a.get_size()
-        phoenix_a = pygame.transform.scale(phoenix_a, (w * scale_factor_phoenix, h * scale_factor_phoenix))
-        phoenix_sheet.append(phoenix_a)
-
-
- 
-    
-    # Variabili per Oscuramento
-    oscurita_attuale = 0      
-    velocita_oscuramento = 4  
-    target_oscurita = 255     # Il punto di buio totale
-    
-    #nebbia: divido per la qualità dell'animazione
-    fog_surface = pygame.Surface((SCREEN_W // 16, SCREEN_H // 16))
-
-
-
-    # --- STATO PERSONAGGIO SAMURAI ---
-    x, y = SCREEN_W // 2, SCREEN_H // 2
-    current_frames = frames_idle_right
-    frame_index = 0
-
-    # --- STATO FENICE ---
-    phoenix_frame_index = 0
-    phoenix_anim_speed = 0.15
-    Side_phoenix = 'R'
-
-
-    # --- LOOP PRINCIPALE ---
-    running = True
-    night = False
-    scurimento = True
-    while running:
-        Old_mouse_pos = pygame.mouse.get_pos()
+    while in_start_screen:
         clock.tick(60)
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                running = False
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-        #logica per la notte
-        if scurimento:
-            # Aumentiamo l'oscurità gradualmente fino al target
-            if oscurita_attuale < target_oscurita:
-                oscurita_attuale += velocita_oscuramento
-            elif oscurita_attuale > target_oscurita: 
-                oscurita_attuale = target_oscurita
-                
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if START_BUTTON_RECT.collidepoint(event.pos):
+                    in_start_screen = False
 
-
-        keys = pygame.key.get_pressed()
-        is_running = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-
-        if is_running:
-            speed = SPEED_RUN
-        else:
-            speed = SPEED_WALK
-
-        # MOVIMENTO + ANIMAZIONE SAMURAI
-        if keys[pygame.K_w] or keys[pygame.K_UP]:
-            y -= speed
-            if is_running:
-                current_frames = frames_run_up 
-            else:
-                current_frames = frames_walk_up
-
-        elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
-            y += speed
-            if is_running:
-                current_frames = frames_run_down
-            else:
-                current_frames = frames_walk_down
-
-        elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            x += speed
-            Side_pg = 'R'
-            if is_running:
-                 current_frames = frames_run_right
-            else:
-                current_frames = frames_walk_right
-
-        elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            x -= speed
-            Side_pg = 'S'
-            if is_running:
-                 current_frames = frames_run_left
-            else:
-                current_frames = frames_walk_left
-
-        else:
-            if Side_pg == 'R':
-                current_frames = frames_idle_right
-            else:
-                current_frames = frames_idle_left
-
-        # ANIMAZIONE SAMURAI
-        anim_speed = ANIM_SPEED
-        if is_running:
-            anim_speed = ANIM_SPEED * 2
-        frame_index += anim_speed
-        if frame_index >= len(current_frames):
-            frame_index = 0
-        current_image = current_frames[int(frame_index)]
-        
-        #rettangolo che contiene il samurai
-        samurai_rect = current_image.get_rect(topleft=(x, y))
-        samurai_rect = samurai_rect.inflate(-90, -26)
-        
-        # posizione mouse
-        mouse_pos = pygame.mouse.get_pos()
-        
-        #ANIMAZIONE DISEGNO FENICE
-        phoenix_frame_index += phoenix_anim_speed
-        if phoenix_frame_index >= len(phoenix_sheet):
-            phoenix_frame_index = 0
-        phoenix_image = phoenix_sheet[int(phoenix_frame_index)]
-        
-        # R/S fenice
-        if mouse_pos > Old_mouse_pos:
-            Side_phoenix = 'R'
-        elif mouse_pos < Old_mouse_pos:
-            Side_phoenix = 'S'
-          
-        if Side_phoenix == 'S':
-            phoenix_image = pygame.transform.flip(phoenix_image, True, False)
-            
-            
-        #ANIMAZIONE DISEGNO SLIME
-        slime_frame_index += slime_anim_speed
-        if slime_frame_index >= len(slime_idle_right):
-            slime_frame_index = 0
-        slime_image = slime_idle_right[int(slime_frame_index)]
-        
-        #ANIMAZIONE DISEGNO BABY DRAGON
-        dragon_frame_index += dragon_anim_speed
-        if dragon_frame_index >= len(dragon_idle_right):
-            dragon_frame_index = 0
-        dragon_image = dragon_idle_right[int(dragon_frame_index)]
-        
-        #ANIMAZIONE DISEGNO ARCH DEMON
-        demon_frame_index += demon_anim_speed
-        if demon_frame_index >= len(demon_idle_right):
-            demon_frame_index = 0
-        demon_image = demon_idle_right[int(demon_frame_index)]
-            
-        # DISEGNO
-        screen.blit(backstage, (0,0))
-        
-        #mostri
-        # slime
-        screen.blit(slime_image, (600, 300))
-        
-        # baby dragon
-        screen.blit(dragon_image, (dragon_x, dragon_y))
-        
-        # arch demon
-        screen.blit(demon_image, (demon_x, demon_y))
-        
-        # Prepariamo la maschera di oscurità
-        fog_surface.fill((0, 0, 0))          # Riempiamo di nero
-        fog_surface.set_alpha(oscurita_attuale) # Applichiamo il livello di buio attuale
-        
-        pygame.draw.circle(fog_surface, (255, 255, 255), ((mouse_pos[0] + 24) // 16, (mouse_pos[1] + 16) // 16), 7)
-        
-        # Applichiamo la nebbia sopra il gioco: la ridimensiono all'origine
-        screen.blit(pygame.transform.scale(fog_surface, (SCREEN_W, SCREEN_H)), (0, 0))
-    
-
-        #samurai
-        screen.blit(current_image, (x, y))
-
-        # fenice
-        screen.blit(phoenix_image, mouse_pos)
-        
-        
-        #trasparenza del cerchio di luce
-        fog_surface.set_colorkey((255, 255, 255))
-        
-        # aggiorna schermo
+        screen.blit(start_screen_img, (0, 0))
         pygame.display.flip()
         
+    # --- INIZIALIZZAZIONE GIOCO ---
+    # --- COSTANTI PERSONAGGIO ---
+    FRAME_SIZE_samurai = 256
+    ANIM_SPEED  = 0.15
+    SPEED_WALK  = 4
+    SPEED_RUN   = 8
+
+    # --- COSTANTI ORB ---
+    ORB_ORBIT_RADIUS    = 80
+    ORB_RADIUS          = 12
+    ORB_SPEED           = 2.5
+    ORB_DAMAGE          = 50
+    ORB_DAMAGE_COOLDOWN = 30
+
+    # --- COSTANTI COLTELLI ---
+    KNIFE_SPEED    = 12
+    KNIFE_DAMAGE   = 25
+    KNIFE_COOLDOWN = 18
+    KNIFE_LENGTH   = 18
+    KNIFE_WIDTH    = 3
+    KNIFE_MAX_RANGE = 300
+    
+    # --- COSTANTI ORDE ---
+    PAUSE_DURATION = 4000
+    SPAWN_INTERVAL = 400
+    
+    
+    # --- COSTANTI IN GIOCO ---
+    #durata animazione danno nemico
+    HIT_FLASH_DURATION = 8
+
+
+
+
+    
+    # --- CARICAMENTO ASSET ---
+    backstage = pygame.image.load("arenaRettangolare.png").convert_alpha()
+    backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
+    
+    shrine_75 = pygame.image.load("tempio75hpRifilato.png").convert_alpha()
+    shrine_75 = pygame.transform.scale(shrine_75, (int(shrine_75.get_width()*0.5), int(shrine_75.get_height()*0.5)))
+    shrine_rect = shrine_75.get_rect(center = (SCREEN_W//2, SCREEN_H//2))
+
+    shrine_100 = load_shrine_state("tempio1nosfondo.png", shrine_rect)
+    shrine_50 = load_shrine_state("tempio50hpRifilato.png", shrine_rect)
+    shrine_25 = load_shrine_state("tempio25hpRifilato.png", shrine_rect)
+    shrine_0  = load_shrine_state("tempio0hpRifilato.png", shrine_rect)
+
+    def get_shrine_img(hp):
+        if   hp > 75:
+            return shrine_100
+        elif hp > 50:
+            return shrine_75
+        elif hp > 25:
+            return shrine_50
+        elif hp > 0:
+            return shrine_25
+        return shrine_0
+    
+    # --- CARICAMENTO SAMURAI ---
+    # --- CARICAMENTO SAMURAI ---
+    frames_idle_right = get_samurai_frames("Samurai-idle-v1.png", FRAME_SIZE_samurai)
+    frames_idle_left = []
+    for f in frames_idle_right:
+        frames_idle_left.append(pygame.transform.flip(f, True, False))
+
+    frames_walk_up    = get_samurai_frames("SamuraiUpgiusto.png", FRAME_SIZE_samurai)
+    frames_walk_down  = get_samurai_frames("SamuraiDowngiusto.png", FRAME_SIZE_samurai)
+    frames_walk_right = get_samurai_frames("SamuraiDxgiusto.png", FRAME_SIZE_samurai)
+
+    frames_walk_left = []
+    for f in frames_walk_right:
+        frames_walk_left.append(pygame.transform.flip(f, True, False))
+
+    frames_run_up    = get_samurai_frames("SamuraiRunUpgiusto.png", FRAME_SIZE_samurai)
+    frames_run_down  = get_samurai_frames("SamuraiRunDowngiusto.png", FRAME_SIZE_samurai)
+    frames_run_right = get_samurai_frames("SamuraiRunDxgiusto.png", FRAME_SIZE_samurai)
+
+    frames_run_left = []
+    for f in frames_run_right:
+        frames_run_left.append(pygame.transform.flip(f, True, False))
+
+        # --- CARICAMENTO NEMICI ---
+        slime_sheet = pygame.image.load("SlimeSpriteSheet.png").convert_alpha()
+        frames_slime = rescale_frames(load_frames(slime_sheet, 1, 4, 32, 32), 2.5)
         
+        dragon_sheet        = pygame.image.load("Baby_Dragon_2D.png").convert_alpha()
+        frames_dragon_left  = rescale_frames(load_frames(dragon_sheet, 2, 2, 64, 64), 2.5)
+        frames_dragon_right = []
+    for f in frames_dragon_left:
+    # Ribalto orizzontalmente (True) e non verticalmente (False)
+        frame_specchiato = pygame.transform.flip(f, True, False)
+        frames_dragon_right.append(frame_specchiato)
+
+    # --- STATO ORDE ---
+    wave_state   = "WAVE_SPAWN"
+    current_wave = 1
+    spawn_queue  = build_spawn_queue(calcola_orda(current_wave))
+    spawn_timer  = 0
+    pause_timer  = 0
+
+    # --- VARIABILI DI GIOCO ---
+    shrine_max_hp, shrine_current_hp = 100.0, 100.0
+    px, py      = SCREEN_W // 2, SCREEN_H // 2
+    side_pg     = 'R'
+    frame_index = 0.0
+    current_frames = frames_idle_right
+
+    # --- STATO ORB ---
+    orb_angle         = 0.0
+    orb_hit_cooldowns = []
+
+    # --- STATO COLTELLI ---
+    knives      = []
+    knife_timer = 0
+
+    enemies = []
+
+    font_health = pygame.font.Font(None, 36)
+    font_wave   = pygame.font.Font(None, 72)
+    font_small  = pygame.font.Font(None, 30)
+    running     = True
+    game_over   = False
+
+    while running:
+        dt = clock.tick(60)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False
+
+        if not game_over:
+            keys       = pygame.key.get_pressed()
+            is_walking = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+            speed      = SPEED_WALK if is_walking else SPEED_RUN
+            moved      = False
+
+            # --- MOVIMENTO ---
+            if keys[pygame.K_w] or keys[pygame.K_UP]:
+                py -= speed; current_frames = frames_walk_up if is_walking else frames_run_up; moved = True
+            elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
+                py += speed; current_frames = frames_walk_down if is_walking else frames_run_down; moved = True
+            elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                px -= speed; side_pg = 'L'; current_frames = frames_walk_left if is_walking else frames_run_left; moved = True
+            elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                px += speed; side_pg = 'R'; current_frames = frames_walk_right if is_walking else frames_run_right; moved = True
+
+            if not moved:
+                current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
+
+            anim_speed = ANIM_SPEED if is_walking else ANIM_SPEED * 1.5
+            frame_index += anim_speed
+            if frame_index >= len(current_frames):
+                frame_index = 0
+
+            px = max(90,  min(px, SCREEN_W - 218))
+            py = max(75,  min(py, SCREEN_H - 218))
+
+            # --- LANCIO COLTELLI ---
+            if knife_timer > 0:
+                knife_timer -= 1
+            if pygame.mouse.get_pressed()[0] and knife_timer == 0:
+                knife_timer = KNIFE_COOLDOWN
+                pg_cx = px + 64; pg_cy = py + 64
+                mx, my = pygame.mouse.get_pos()
+                angle  = math.atan2(my - pg_cy, mx - pg_cx)
+                if mx < pg_cx:
+                    side_pg = 'L'
+                else:
+                    side_pg = 'R'
+                vx = math.cos(angle) * KNIFE_SPEED
+                vy = math.sin(angle) * KNIFE_SPEED
+                surf = make_knife_surface(angle, KNIFE_LENGTH, KNIFE_WIDTH)
+                hs   = surf.get_width() // 2
+                
+                #l'ultimo elemento è il contatore della distanza percorsa dal coltello
+                knives.append([pg_cx, pg_cy, vx, vy, surf, hs, 0])
+
+            # --- AGGIORNA ORB ---
+            #calcolo angolazione della orb
+            orb_angle += ORB_SPEED * (dt / 1000.0)
+            #centro del personaggio
+            pg_cx = px + 64; pg_cy = py + 64
+            orb_positions = []
+            
+            for i in range(2):
+                #i = 0 -> 0° prima orb
+                #i = 1 -> 180° seconda orb, diametralmente opposta
+                #math.cos(angolo): Ci dice quanto dobbiamo spostarci a DESTRA o SINISTRA dal centro, in proporzione
+                #math.sin(angolo): Ci dice quanto dobbiamo spostarci in ALTO o BASSO dal centro, in proporzione
+                #*ORB_ORBIT_RADIUS moltiplica il valore trovato con sin e cos per il raggio, lo allunga
+                orb_positions.append((pg_cx + math.cos(orb_angle + i * math.pi) * ORB_ORBIT_RADIUS, pg_cy + math.sin(orb_angle + i * math.pi) * ORB_ORBIT_RADIUS))
+            
+            
+            #orb_hit_cooldowns: un nemico deve aspettare un tot per essere colpito nuovamente dalla orb
+            # Creiamo una nuova lista tenendo solo chi ha ancora un timer attivo
+            new_orb_hit_cooldowns = []
+            for entry in orb_hit_cooldowns:
+                entry[1] -= 1  # Abbassa il timer (che è in posizione 1)
+                if entry[1] > 0: #lo teniamo solo se ancora deve scontare tempo [elimina chi ha timer nullo]
+                    new_orb_hit_cooldowns.append(entry)
+                orb_hit_cooldowns = new_orb_hit_cooldowns
+
+            # --- AGGIORNA COLTELLI ---
+            for k in knives.copy():
+                k[0] += k[2]
+                k[1] += k[3]
+                k[6] += KNIFE_SPEED #aggiorno distanza percorsa
+                if k[0] < -60 or k[0] > SCREEN_W+60 or k[1] < -60 or k[1] > SCREEN_H+60 or k[6] >= KNIFE_MAX_RANGE:
+                    knives.remove(k)
+
+            # --- MACCHINA A STATI ORDE ---
+            if wave_state == "WAVE_SPAWN":
+                spawn_timer += dt
+                if spawn_timer >= SPAWN_INTERVAL and spawn_queue:
+                    spawn_timer = 0
+                    spawn_one(spawn_queue.pop(0), enemies, SCREEN_W, SCREEN_H)
+                if not spawn_queue:
+                    wave_state = "WAVE_ACTIVE"
+
+            elif wave_state == "WAVE_ACTIVE":
+                if len(enemies) == 0:
+                    wave_state = "WAVE_PAUSE"
+                    pause_timer = 0
+
+            elif wave_state == "WAVE_PAUSE":
+                pause_timer += dt
+                if pause_timer >= PAUSE_DURATION:
+                    current_wave += 1
+                    spawn_queue  = build_spawn_queue(calcola_orda(current_wave))
+                    spawn_timer  = 0
+                    wave_state   = "WAVE_SPAWN"
+
+            # --- DISEGNO SFONDO ---
+            screen.blit(backstage, (0, 0))
+            shrine_img = get_shrine_img(shrine_current_hp)
+            screen.blit(shrine_img, (shrine_rect.x, shrine_rect.y + (shrine_75.get_height() - shrine_img.get_height()) ))
+            
+            # --- LOGICA NEMICI ---
+            for enemy in enemies.copy():
+                #coordinate centro del nemico
+                ecx = enemy[0] + enemy[4] / 2
+                ecy = enemy[1] + enemy[5] / 2
+                
+                #dist6anza del nemico dallo shrine
+                dx   = shrine_rect.centerx - enemy[0]
+                dy   = shrine_rect.centery - enemy[1]
+                dist = math.hypot(dx, dy)
+
+                if dist > 60:
+                    enemy[0] += (dx / dist) * enemy[7]
+                    enemy[1] += (dy / dist) * enemy[7]
+                else:
+                    shrine_current_hp -= 0.05
+                
+                #animazione dei nemici
+                enemy[6] += 0.15
+                if enemy[6] >= 4:
+                    enemy[6] = 0
+
+                # Collisione ORB
+                #id è l'identificativo del preciso slime nella memoria stesso del computer(RAM) tipo (1465367)
+                eid = id(enemy)
+                 # Controlliamo se il nemico è "in punizione"
+                gia_colpito = False
+                for entry in orb_hit_cooldowns:
+                    #entry contiene l'id del nemico e il tempo che deve scontare
+                    if entry[0] == eid:
+                        gia_colpito = True
+                        break
+
+                if not gia_colpito:
+                    for (ox, oy) in orb_positions:
+                        #se sono nel raggio delle orbe
+                        if math.hypot(ox - ecx, oy - ecy) < ORB_RADIUS + max(enemy[4], enemy[5]) / 2:
+                            #riduzione hp nemico [enemy2]
+                            enemy[2] -= ORB_DAMAGE
+                            #stato del danno
+                            enemy[8] = HIT_FLASH_DURATION
+                            # Aggiungiamo il nemico alla lista con il suo timer
+                            orb_hit_cooldowns.append([eid, ORB_DAMAGE_COOLDOWN])
+                            #break per evitare il 'doppio danno' (se entrambe le orb toccano il nemico)
+                            break
+                    
+
+                #rettangolo del nemico
+                enemy_rect = pygame.Rect(enemy[0], enemy[1], enemy[4], enemy[5])
+                
+                # Collisione COLTELLI
+                for k in knives.copy():
+                    knife_rect = pygame.Rect(k[0]-k[5], k[1]-k[5], k[5]*2, k[5]*2)
+                    if enemy_rect.colliderect(knife_rect):
+                        enemy[2] -= KNIFE_DAMAGE
+                        #stato del danno
+                        enemy[8] = HIT_FLASH_DURATION
+                        if k in knives:
+                            knives.remove(k)
+                        break
+
+                if enemy[2] <= 0 and enemy in enemies:
+                    enemies.remove(enemy)
+            
+            #controllo del game over
+            if shrine_current_hp <= 0:
+                shrine_current_hp = 0
+                running = False
+                game_over = True
+
+            # --- DISEGNO COLTELLI ---
+            for k in knives:
+                screen.blit(k[4], (int(k[0]) - k[5], int(k[1]) - k[5]))
+
+            # --- DISEGNO NEMICI ---
+            for e in enemies:
+                if e[3] == 'slime':
+                    img = frames_slime[int(e[6]) % 4]
+                else:
+                    if e[0] < SCREEN_W//2 :
+                        img = frames_dragon_right[int(e[6]) % 4] 
+                    else :
+                        img = frames_dragon_left[int(e[6]) % 4]
+                        
+                screen.blit(img, (e[0], e[1]))
+                
+                #flash rosso se il nemico è colpito
+                if e[8] > 0:
+                    #cooldown stato del danno
+                    e[8] -= 1
+                    
+                    #maschera superiore con la stessa forma dello sprite
+                    red_overlay = img.copy()
+                    #riempio la maschera con il rosso semitrasparente (4° numero del rgb)
+                    #blend_rgba_mult 'somma' i colori dei pixel sottostanti
+                    red_overlay.fill((255, 0, 0, 120), special_flags=pygame.BLEND_RGBA_MULT)
+                    screen.blit(red_overlay, (e[0], e[1]))
+            
+
+            # --- DISEGNO SAMURAI ---
+            screen.blit(current_frames[int(frame_index) % len(current_frames)], (px, py))
+
+            # --- DISEGNO ORB ---
+            for (ox, oy) in orb_positions:
+                #disegno della trasparenza
+                #glow è una superficie che supporta la trasparenza, su di essa ci disegniamo un cerchio doppio della orb
+                glow = pygame.Surface((ORB_RADIUS*4, ORB_RADIUS*4), pygame.SRCALPHA)
+                pygame.draw.circle(glow, (255, 210, 0, 70), (ORB_RADIUS*2, ORB_RADIUS*2), ORB_RADIUS*2)
+                screen.blit(glow, (int(ox) - ORB_RADIUS*2, int(oy) - ORB_RADIUS*2))
+                #disegno del nucleo della orb
+                pygame.draw.circle(screen, (255, 220, 0),   (int(ox), int(oy)), ORB_RADIUS)
+                #disegno del cerchio bianco 'punto di luce', leggermente in alto a sinistra
+                pygame.draw.circle(screen, (255, 255, 210), (int(ox)-3, int(oy)-3), ORB_RADIUS//3)
+                
+        # --- UI ---
+        pygame.draw.rect(screen, (50, 50, 50),  (SCREEN_W//2-150, 30, 300, 20))
+        pygame.draw.rect(screen, (0, 200, 255), (SCREEN_W//2-150, 30, (shrine_current_hp/shrine_max_hp)*300, 20))
+        txt = font_health.render(f"SHRINE HP: {int(shrine_current_hp)}", True, (255,255,255))
+        screen.blit(txt, (SCREEN_W//2 - txt.get_width()//2, 55))
+
+        wave_txt = font_small.render(f"WAVE  {current_wave}", True, (255, 220, 80))
+        screen.blit(wave_txt, (20, 20))
+
+        if wave_state == "WAVE_ACTIVE":
+            rem_txt = font_small.render(f"Nemici: {len(enemies)}", True, (220, 220, 220))
+            screen.blit(rem_txt, (20, 48))
+
+        if wave_state == "WAVE_PAUSE":
+            seconds_left = max(1, int((PAUSE_DURATION - pause_timer) / 1000) + 1)
+            ann = font_wave.render(f"WAVE  {current_wave + 1}  in  {seconds_left}...", True, (255, 230, 60))
+            screen.blit(ann, (SCREEN_W//2 - ann.get_width()//2, SCREEN_H//2 - 40))
+           
+
+        pygame.display.flip()
+    
+    while game_over:
+        #uscire dal gioco
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_over = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                game_over = False
         
+        # --- DISEGNO SFONDO ---
+        screen.blit(backstage, (0, 0))
+        shrine_img = get_shrine_img(shrine_current_hp)
+        screen.blit(shrine_img, (shrine_rect.x, shrine_rect.y + (shrine_75.get_height() - shrine_img.get_height()) ))
+               
+        
+        # --- DISEGNO SAMURAI ---
+        screen.blit(current_frames[int(frame_index) % len(current_frames)], (px, py))
+        
+        # Scurisce leggermente lo schermo
+        overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 100)) # Nero semitrasparente, con il quarto numero
+        screen.blit(overlay, (0,0))
+        
+        #disegno scritta della sconfitta
+        over_txt = font_health.render("SHRINE DESTROYED! ESC to Quit", True, (255,50,50))
+        screen.blit(over_txt, (SCREEN_W//2 - over_txt.get_width()//2, SCREEN_H//2))
+        
+        pygame.display.flip()
+        clock.tick(60)
         
         
     pygame.quit()
     sys.exit()
 
-main()
+
+# --- PROVA DEL GIOCO ---
+if __name__ == "__main__":
+    main()

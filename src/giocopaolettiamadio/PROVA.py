@@ -127,6 +127,8 @@ def main() -> None:
 
         screen.blit(start_screen_img, (0, 0))
         pygame.display.flip()
+        
+    # --- INIZIALIZZAZIONE GIOCO ---
     # --- COSTANTI PERSONAGGIO ---
     FRAME_SIZE_samurai = 256
     ANIM_SPEED  = 0.15
