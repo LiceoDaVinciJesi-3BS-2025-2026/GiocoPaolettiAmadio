@@ -107,7 +107,7 @@ def main() -> None:
     clock = pygame.time.Clock()
 
     # ================== SCHERMATA INIZIALE (caricata una volta sola) ==================
-    start_screen_img = pygame.image.load("schermataI.png").convert_alpha()
+    start_screen_img = pygame.image.load("crimsonguard.png").convert_alpha()
     start_screen_img = pygame.transform.scale(start_screen_img, (SCREEN_W, SCREEN_H))
     START_BUTTON_RECT = pygame.Rect(522, 600, 300, 90)
 
