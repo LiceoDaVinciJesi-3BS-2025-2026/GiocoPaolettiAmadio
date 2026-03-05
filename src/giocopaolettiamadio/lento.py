@@ -4,7 +4,6 @@ import math
 import random
 import datetime
 import os
-from platformdirs import PlatformDirs
 
 # --- FUNZIONI DI SUPPORTO ---
 def load_frames(sheet, ROWS, COLS, FRAME_SIZE_W, FRAME_SIZE_H=None):
@@ -21,7 +20,7 @@ def load_frames(sheet, ROWS, COLS, FRAME_SIZE_W, FRAME_SIZE_H=None):
         Lista di superfici pygame, una per ogni frame,
         ordinati da sinistra a destra e dall'alto verso il basso.
     """
-    frames = []
+    frames = [] 
     if FRAME_SIZE_H is None:
         FRAME_SIZE_H = FRAME_SIZE_W
     for row in range(ROWS):
@@ -43,6 +42,7 @@ def rescale_frames(lista_frames, fattore):
         Nuova lista di superfici pygame riscalate.
     """
     frames_riscalati = []  # Lista che conterrà i frame riscalati
+
     for f in lista_frames:  # Scorre ogni frame della lista originale
         nuova_larghezza = int(f.get_width() * fattore)   # Calcola la nuova larghezza moltiplicando quella originale per il fattore
         nuova_altezza = int(f.get_height() * fattore)    # Calcola la nuova altezza moltiplicando quella originale per il fattore
@@ -55,7 +55,7 @@ def load_shrine_state(filename, shrine_rect):
     """
     Carica un'immagine e la riscala proporzionalmente alla larghezza del rettangolo fornito.
 
-    Argomenti:
+    Args:
         filename:    Percorso del file immagine da caricare.
         shrine_rect: Rettangolo pygame che definisce le dimensioni target (viene usata la larghezza).
 
@@ -68,7 +68,7 @@ def load_shrine_state(filename, shrine_rect):
 
     return pygame.transform.scale(img, (shrine_rect.width, int(img.get_height() * scale_factor)))  
     # Riscala l'immagine mantenendo le proporzioni: larghezza fissa a shrine_rect.width, altezza scalata proporzionalmente
-
+    
 def get_samurai_frames(filename, FRAME_SIZE_samurai):
     sheet = pygame.image.load(filename).convert_alpha()
     return rescale_frames(load_frames(sheet, 5, 5, FRAME_SIZE_samurai), 0.5)
@@ -105,8 +105,8 @@ def make_knife_surface(angle_rad, KNIFE_LENGTH, KNIFE_WIDTH):
 
 # --- SISTEMA ORDE ---
 def calcola_orda(wave_num):
-    totale      = 4 + (wave_num - 1) * 2
-    prob_dragon = min(0.1 + (wave_num - 1) * 0.1, 0.7)
+    totale      = 4 + (wave_num - 1) * 2   
+    prob_dragon = min(0.1 + (wave_num - 1) * 0.1, 0.7) 
     hp_mult     = 1.0 + (wave_num - 1) * 0.2
     params = [totale, prob_dragon, hp_mult]
     return params #parametri per ogni orda, aumentati mano a mano che le ordine aumentano
@@ -168,22 +168,10 @@ def spawn_one(entry, enemies, SCREEN_W, SCREEN_H):
             ey = SCREEN_H
             
     #aggiungo le informazioni sul nemico alla lista completa
-    #0-1. coordinate del nemico
-    #2. hp del nemico
-    #3. tipologia nemico
-    #4-5. larghezza/altezza nemico 
-    #6. frame index
-    #7. velocità di movimento
     #8. contatore anim. danno
     enemies.append([ex, ey, entry[1], entry[0], entry[3], entry[4], 0.0, entry[2], 0])
     
-    
-# --- FUNZIONI CLASSIFICA/SALVATAGGIO DEL GIOCO
-#creo l'oggetto platformdirs per la mia app
-#creo il path per il file aggiunto
-#lo metto nella direcotry dell'APP sull'Utente
-dirs = PlatformDirs("CrimsonGuard", ensure_exists=True)  
-CLASSIFICA_FILE = dirs.user_data_path / "classifica.txt"
+CLASSIFICA_FILE = "classifica.txt"
 
 def salva_partita(nickname, wave, nemici, durata_sec, coltelli):
     """Aggiunge una riga al file classifica.txt"""
@@ -191,20 +179,18 @@ def salva_partita(nickname, wave, nemici, durata_sec, coltelli):
     minuti = int(durata_sec // 60)
     secondi = int(durata_sec % 60)
     riga = f"{data} | {nickname:<12} | Wave: {wave:>3} | Nemici: {nemici:>4} | Durata: {minuti:02d}:{secondi:02d} | Coltelli: {coltelli:>4}\n"
-    with open(CLASSIFICA_FILE, "a", encoding="utf-8") as f:
-        f.write(riga)
-
-def carica_classifica(max_righe=8):
-    """Legge le ultime max_righe dal file classifica"""
-    if not os.path.exists(CLASSIFICA_FILE):
-        return []
-
     f = open(CLASSIFICA_FILE, "a", encoding="utf-8")
     f.write(riga)
     f.close()
 
-    ultime_righe = righe[-max_righe:]
+def carica_classifica(max_righe=8):
+    """legge le ultime max_righe dal file classifica"""
+    if not os.path.exists(CLASSIFICA_FILE):
+        return []
+    with open(CLASSIFICA_FILE, "r", encoding="utf-8") as f:
+        righe = f.readlines()
 
+    ultime_righe = righe[-max_righe:]
     risultato = []
     for r in ultime_righe:
         riga_pulita = r.rstrip("\n")
@@ -219,7 +205,8 @@ def main() -> None:
     pygame.init()
     
     # FINESTRA
-    SCREEN_W, SCREEN_H = 1344, 768
+    SCREEN_W= 1344 
+    SCREEN_H = 768
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     pygame.display.set_caption("Crimson Guard")
     clock = pygame.time.Clock()
@@ -241,7 +228,6 @@ def main() -> None:
     ORB_SPEED           = 2.5
     ORB_DAMAGE          = 50
     ORB_DAMAGE_COOLDOWN = 30
-    ORB_NUM = 5
 
     # --- COSTANTI COLTELLI ---
     KNIFE_SPEED    = 12
@@ -422,27 +408,13 @@ def main() -> None:
                     knives.append([pg_cx, pg_cy, vx, vy, surf, hs, 0])
                     coltelli_sparati += 1
 
-                
-                    # --- AGGIORNA ORB ---
-                #calcolo angolazione della orb
+                # --- AGGIORNA ORB ---
                 orb_angle += ORB_SPEED * (dt / 1000.0)
-                #centro del personaggio
-                pg_cx = px + 64
-                pg_cy = py + 64
+                pg_cx = px + 64; pg_cy = py + 64
                 orb_positions = []
-                
-                for i in range(ORB_NUM):
-                    #dividiamo il cerchio in tanti angoli congruenti  quante sono le orbe
-                    angs_equi = 2 * math.pi / ORB_NUM
-                    #per ogni orb diversa, aggiungo l'angolo congruente all'angolo attuale delle orb
-                    #math.cos(angolo): Ci dice quanto dobbiamo spostarci a DESTRA o SINISTRA dal centro, in proporzione
-                    orb_dist_x = math.cos(orb_angle + i * angs_equi) * ORB_ORBIT_RADIUS
-                    #math.sin(angolo): Ci dice quanto dobbiamo spostarci in ALTO o BASSO dal centro, in proporzione
-                    orb_dist_y = math.sin(orb_angle + i * angs_equi) * ORB_ORBIT_RADIUS
-                    #*ORB_ORBIT_RADIUS moltiplica il valore trovato con sin e cos per il raggio, lo allunga
-                    #aggiungiamo le coordinate rispetto al centro del personaggio, pg_cx e pg_cy
-                    orb_positions.append((pg_cx + orb_dist_x, pg_cy + orb_dist_y))
-                
+                for i in range(2):
+                    orb_positions.append((pg_cx + math.cos(orb_angle + i * math.pi) * ORB_ORBIT_RADIUS,
+                                          pg_cy + math.sin(orb_angle + i * math.pi) * ORB_ORBIT_RADIUS))
 
                 new_orb_hit_cooldowns = []
                 for entry in orb_hit_cooldowns:
