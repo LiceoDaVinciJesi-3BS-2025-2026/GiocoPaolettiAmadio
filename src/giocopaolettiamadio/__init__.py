@@ -191,9 +191,10 @@ def salva_partita(nickname, wave, nemici, durata_sec, coltelli):
     minuti = int(durata_sec // 60)
     secondi = int(durata_sec % 60)
     riga = f"{data} | {nickname:<12} | Wave: {wave:>3} | Nemici: {nemici:>4} | Durata: {minuti:02d}:{secondi:02d} | Coltelli: {coltelli:>4}\n"
-    with open(CLASSIFICA_FILE, "a", encoding="utf-8") as f:
-        f.write(riga)
-
+    f = open(CLASSIFICA_FILE, "a", encoding="utf-8") 
+    f.write(riga)
+    f.close()
+    
 def carica_classifica(max_righe=8):
     """Legge le ultime max_righe dal file classifica"""
     if not os.path.exists(CLASSIFICA_FILE):
@@ -221,10 +222,12 @@ def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCR
 
     storico_txt = font_health.render("Ultime partite:", True, (180, 220, 255))
     screen.blit(storico_txt, (cx - 300, 130))
-    for i, riga in enumerate(classifica):
+    i = 0
+    for riga in classifica:
         colore = (255, 255, 100) if nickname and nickname.strip() in riga else (200, 200, 200)
         s = font_small.render(riga, True, colore)
         screen.blit(s, (cx - 300, 165 + i * 34))
+        i += 1
 
 #---------------------------------------------------------------------------------------#
 #funzione run del gioco
@@ -246,9 +249,9 @@ def main() -> None:
     # --- PULSANTE (schermata iniziale) ---
     #r -> raw string -> faccio capire a python che deve interpretare \ in modo letterale 
     ui_sheet = pygame.image.load(r"materiali\UI_grey_buttons_1.png").convert_alpha()
-    # ogni icona è 16x16 pixel nello sheet; prendo riga 2 col 4 (icona lista/elenco)
+    # ogni icona è 16x16 pixel nello sheet; prendo riga 0 col 4 (icona lista/elenco)
     icon_size = 16
-    icon_raw = ui_sheet.subsurface(pygame.Rect(4 * icon_size, 2 * icon_size, icon_size, icon_size))
+    icon_raw = ui_sheet.subsurface(pygame.Rect(4 * icon_size, 0 * icon_size, icon_size, icon_size))
     icon_img = pygame.transform.scale(icon_raw, (48, 48))
     CLASSIFICA_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 80, 60, 60)
 
@@ -674,7 +677,7 @@ def main() -> None:
                             # --- cancella in inserimento ---
                             nickname = nickname[:-1]
                         else:
-                            if len(nickname) < 16 and event.unicode.isprintable():
+                            if len(nickname) < 6 and event.unicode.isprintable():
                                 nickname += event.unicode
                     else:
                         # --- fase di visualizzazione risultati ---
@@ -710,10 +713,12 @@ def main() -> None:
                     f"Durata partita:   {minuti:02d}:{secondi:02d}",
                     f"Coltelli lanciati: {coltelli_sparati}",
                 ]
-                for i, riga in enumerate(stats):
+                
+                i = 0
+                for riga in stats:
                     s = font_health.render(riga, True, (220, 220, 180))
                     screen.blit(s, (cx - s.get_width()//2, 200 + i * 44))
-
+                    i += 1
                 prompt = font_health.render("Inserisci il tuo nome e premi INVIO:", True, (255, 230, 80))
                 screen.blit(prompt, (cx - prompt.get_width()//2, 420))
 
@@ -743,9 +748,11 @@ def main() -> None:
                     f"Durata:            {minuti:02d}:{secondi:02d}",
                     f"Coltelli lanciati: {coltelli_sparati}",
                 ]
-                for i, riga in enumerate(stats):
+                i = 0
+                for riga in stats:
                     s = font_small.render(riga, True, (210, 210, 210))
                     screen.blit(s, (80, 165 + i * 32))
+                    i += 1
 
                 hint2 = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
                 screen.blit(hint2, (SCREEN_W//2 - hint2.get_width()//2, SCREEN_H - 50))
