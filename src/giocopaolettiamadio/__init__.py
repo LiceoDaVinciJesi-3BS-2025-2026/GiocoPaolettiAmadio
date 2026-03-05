@@ -150,7 +150,7 @@ def main() -> None:
     ORB_SPEED           = 2.5
     ORB_DAMAGE          = 50
     ORB_DAMAGE_COOLDOWN = 30
-    ORB_NUM = 3
+    ORB_NUM = 5
 
     # --- COSTANTI COLTELLI ---
     KNIFE_SPEED    = 12
@@ -320,26 +320,26 @@ def main() -> None:
                     coltelli_sparati += 1
 
                 
-                # --- AGGIORNA ORB ---
-            #calcolo angolazione della orb
-            orb_angle += ORB_SPEED * (dt / 1000.0)
-            #centro del personaggio
-            pg_cx = px + 64
-            pg_cy = py + 64
-            orb_positions = []
-            
-            for i in range(ORB_NUM):
-                #dividiamo il cerchio in tanti angoli congruenti  quante sono le orbe
-                angs_equi = 2 * math.pi / ORB_NUM
-                #per ogni orb diversa, aggiungo l'angolo congruente all'angolo attuale delle orb
-                #math.cos(angolo): Ci dice quanto dobbiamo spostarci a DESTRA o SINISTRA dal centro, in proporzione
-                orb_dist_x = math.cos(orb_angle + i * angs_equi) * ORB_ORBIT_RADIUS
-                #math.sin(angolo): Ci dice quanto dobbiamo spostarci in ALTO o BASSO dal centro, in proporzione
-                orb_dist_y = math.sin(orb_angle + i * angs_equi) * ORB_ORBIT_RADIUS
-                #*ORB_ORBIT_RADIUS moltiplica il valore trovato con sin e cos per il raggio, lo allunga
-                #aggiungiamo le coordinate rispetto al centro del personaggio, pg_cx e pg_cy
-                orb_positions.append((pg_cx + orb_dist_x, pg_cy + orb_dist_y))
-            
+                    # --- AGGIORNA ORB ---
+                #calcolo angolazione della orb
+                orb_angle += ORB_SPEED * (dt / 1000.0)
+                #centro del personaggio
+                pg_cx = px + 64
+                pg_cy = py + 64
+                orb_positions = []
+                
+                for i in range(ORB_NUM):
+                    #dividiamo il cerchio in tanti angoli congruenti  quante sono le orbe
+                    angs_equi = 2 * math.pi / ORB_NUM
+                    #per ogni orb diversa, aggiungo l'angolo congruente all'angolo attuale delle orb
+                    #math.cos(angolo): Ci dice quanto dobbiamo spostarci a DESTRA o SINISTRA dal centro, in proporzione
+                    orb_dist_x = math.cos(orb_angle + i * angs_equi) * ORB_ORBIT_RADIUS
+                    #math.sin(angolo): Ci dice quanto dobbiamo spostarci in ALTO o BASSO dal centro, in proporzione
+                    orb_dist_y = math.sin(orb_angle + i * angs_equi) * ORB_ORBIT_RADIUS
+                    #*ORB_ORBIT_RADIUS moltiplica il valore trovato con sin e cos per il raggio, lo allunga
+                    #aggiungiamo le coordinate rispetto al centro del personaggio, pg_cx e pg_cy
+                    orb_positions.append((pg_cx + orb_dist_x, pg_cy + orb_dist_y))
+                
 
                 new_orb_hit_cooldowns = []
                 for entry in orb_hit_cooldowns:
