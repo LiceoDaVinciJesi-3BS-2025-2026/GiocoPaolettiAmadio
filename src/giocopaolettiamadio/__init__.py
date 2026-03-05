@@ -198,19 +198,33 @@ def carica_classifica(max_righe=8):
     """Legge le ultime max_righe dal file classifica"""
     if not os.path.exists(CLASSIFICA_FILE):
         return []
-
-    f = open(CLASSIFICA_FILE, "a", encoding="utf-8")
-    f.write(riga)
+    f = open(CLASSIFICA_FILE, "r", encoding="utf-8")
+    righe = f.readlines()
     f.close()
-
-    ultime_righe = righe[-max_righe:]
-
+    ultime = righe[-max_righe:]
     risultato = []
-    for r in ultime_righe:
-        riga_pulita = r.rstrip("\n")
-        risultato.append(riga_pulita)
-
+    for r in ultime:
+        risultato.append(r.rstrip("\n"))
     return risultato
+    
+
+
+def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H,
+                       classifica, nickname=""):
+    """Disegna la schermata classifica. Usata sia dal game over che dalla schermata iniziale."""
+    cx = SCREEN_W // 2
+
+    titolo = font_wave.render("CLASSIFICA", True, (255, 220, 60))
+    screen.blit(titolo, (cx - titolo.get_width()//2, 40))
+
+    pygame.draw.line(screen, (120, 120, 120), (cx - 320, 120), (cx - 320, SCREEN_H - 80), 1)
+
+    storico_txt = font_health.render("Ultime partite:", True, (180, 220, 255))
+    screen.blit(storico_txt, (cx - 300, 130))
+    for i, riga in enumerate(classifica):
+        colore = (255, 255, 100) if nickname and nickname.strip() in riga else (200, 200, 200)
+        s = font_small.render(riga, True, colore)
+        screen.blit(s, (cx - 300, 165 + i * 34))
 
 #---------------------------------------------------------------------------------------#
 #funzione run del gioco
@@ -229,6 +243,15 @@ def main() -> None:
     start_screen_img = pygame.transform.scale(start_screen_img, (SCREEN_W, SCREEN_H))
     START_BUTTON_RECT = pygame.Rect(522, 600, 300, 90)
 
+    # --- PULSANTE (schermata iniziale) ---
+    #r -> raw string -> faccio capire a python che deve interpretare \ in modo letterale 
+    ui_sheet = pygame.image.load(r"materiali\UI_grey_buttons_1.png").convert_alpha()
+    # ogni icona è 16x16 pixel nello sheet; prendo riga 2 col 4 (icona lista/elenco)
+    icon_size = 16
+    icon_raw = ui_sheet.subsurface(pygame.Rect(4 * icon_size, 2 * icon_size, icon_size, icon_size))
+    icon_img = pygame.transform.scale(icon_raw, (48, 48))
+    CLASSIFICA_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 80, 60, 60)
+
     # --- COSTANTI PERSONAGGIO ---
     FRAME_SIZE_samurai = 256
     ANIM_SPEED  = 0.15
@@ -241,7 +264,7 @@ def main() -> None:
     ORB_SPEED           = 2.5
     ORB_DAMAGE          = 50
     ORB_DAMAGE_COOLDOWN = 30
-    ORB_NUM = 5
+    ORB_NUM = 2
 
     # --- COSTANTI COLTELLI ---
     KNIFE_SPEED    = 12
@@ -323,16 +346,43 @@ def main() -> None:
 
         # ================== SCHERMATA INIZIALE ==================
         in_start_screen = True
+        mostra_classifica_start = False
         while in_start_screen:
             clock.tick(60)
+            
             for event in pygame.event.get():
-                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        if mostra_classifica_start:
+                            mostra_classifica_start = False
+                        else:
+                            pygame.quit()
+                            sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if START_BUTTON_RECT.collidepoint(event.pos):
+                    if not mostra_classifica_start and START_BUTTON_RECT.collidepoint(event.pos):
                         in_start_screen = False
+                    if CLASSIFICA_BTN_RECT.collidepoint(event.pos):
+                        mostra_classifica_start = not mostra_classifica_start
+
             screen.blit(start_screen_img, (0, 0))
+
+            if mostra_classifica_start:
+                overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 180))
+                screen.blit(overlay, (0, 0))
+                classifica_dati = carica_classifica()
+                disegna_classifica(screen, font_wave, font_health, font_small,
+                                   SCREEN_W, SCREEN_H, classifica_dati)
+
+            # --- disegno pulsante classifica ---
+            btn_color = (80, 80, 120) if CLASSIFICA_BTN_RECT.collidepoint(pygame.mouse.get_pos()) else (50, 50, 90)
+            pygame.draw.rect(screen, btn_color, CLASSIFICA_BTN_RECT, border_radius=8)
+            pygame.draw.rect(screen, (180, 180, 220), CLASSIFICA_BTN_RECT, 2, border_radius=8)
+            screen.blit(icon_img, (CLASSIFICA_BTN_RECT.x + 6, CLASSIFICA_BTN_RECT.y + 6))
+
             pygame.display.flip()
 
         # ================== INIT VARIABILI DI GIOCO ==================
@@ -677,10 +727,11 @@ def main() -> None:
 
             else:
                 # --- SCHERMATA CLASSIFICA ---
-                titolo = font_wave.render("CLASSIFICA", True, (255, 220, 60))
-                screen.blit(titolo, (cx - titolo.get_width()//2, 40))
-
-                # statistiche ultima partita (riquadro a sinistra)
+                disegna_classifica(screen, font_wave, font_health, font_small,
+                                   SCREEN_W, SCREEN_H, classifica, nickname)
+                
+                
+                # statistiche ultima partita (colonna sinistra)
                 minuti  = int(durata_sec // 60)
                 secondi = int(durata_sec % 60)
                 tua_txt = font_health.render("La tua partita:", True, (180, 220, 255))
@@ -692,35 +743,14 @@ def main() -> None:
                     f"Durata:            {minuti:02d}:{secondi:02d}",
                     f"Coltelli lanciati: {coltelli_sparati}",
                 ]
-                i = 0
-                for riga in stats:
+                for i, riga in enumerate(stats):
                     s = font_small.render(riga, True, (210, 210, 210))
                     screen.blit(s, (80, 165 + i * 32))
-                    i += 1
-                    
-                # separatore verticale
-                pygame.draw.line(screen, (120, 120, 120), (cx - 320, 120), (cx - 320, SCREEN_H - 80), 1)
 
-                # ultime partite (colonna destra)
-                storico_txt = font_health.render("Ultime partite:", True, (180, 220, 255))
-                screen.blit(storico_txt, (cx -300, 130))
-                i = 0
-                for riga in classifica:
-                    #se il nickname del giocatore è già presente, evidenzio le partite in giallo. altrimenti è grigio
-                    if nickname.strip() in riga:
-                        colore = (255, 255, 100)
-                    else:
-                        colore = (200, 200, 200)
-                        
-                    s = font_small.render(riga, True, colore)
-                    screen.blit(s, (cx - 300, 165 + i * 34))
-                    i += 1
-                    
+                hint2 = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
+                screen.blit(hint2, (SCREEN_W//2 - hint2.get_width()//2, SCREEN_H - 50))
 
-                # istruzioni
-                hint = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
-                screen.blit(hint, (cx - hint.get_width()//2, SCREEN_H - 50))
-
+            
             pygame.display.flip()
 
         # game_over == False → il while True esterno riparte dalla schermata iniziale
