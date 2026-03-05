@@ -279,6 +279,50 @@ def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCR
 
     return switch_rect
 
+
+def disegna_istruzioni(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H):
+    """Disegna la schermata istruzioni/tutorial."""
+    cx = SCREEN_W // 2
+
+    titolo = font_wave.render("COME SI GIOCA", True, (255, 220, 60))
+    screen.blit(titolo, (cx - titolo.get_width()//2, 30))
+
+    righe = [
+        ("OBIETTIVO",          (255, 180, 60)),
+        ("Uccidi i mostri prima che raggiungano il tempio al centro della mappa.", (220, 220, 180)),
+        ("Quando i mostri sono vicini al tempio lo attaccano, riducendone gli HP.", (220, 220, 180)),
+        ("Se gli HP del tempio arrivano a zero: GAME OVER.",                        (220, 220, 180)),
+        ("",                   (255, 255, 255)),
+        ("MOVIMENTO",          (255, 180, 60)),
+        ("WASD  /  Frecce direzionali:   corri sulla mappa",                    (220, 220, 180)),
+        ("Tieni premuto SHIFT mentre ti muovi:   cammina lentamente",                   (220, 220, 180)),
+        ("",                   (255, 255, 255)),
+        ("ATTACCARE",          (255, 180, 60)),
+        ("Orb rotanti:  colpiscono automaticamente i nemici che toccano.",           (220, 220, 180)),
+        ("Coltelli:   premi TASTO SINISTRO del mouse per lanciare un coltello.",    (220, 220, 180)),
+        ("            I coltelli volano verso il puntatore del mouse.",             (220, 220, 180)),
+        ("",                   (255, 255, 255)),
+        ("ALTRO",              (255, 180, 60)),
+        ("ESC:   chiude il gioco in qualsiasi momento",                          (220, 220, 180)),
+    ]
+
+    y = 120
+    for testo, colore in righe:
+        if testo == "":
+            y += 10
+            continue
+        # titoli di sezione in font_health, resto in font_small
+        if colore == (255, 180, 60):
+            surf = font_health.render(testo, True, colore)
+        else:
+            surf = font_small.render(testo, True, colore)
+        screen.blit(surf, (cx - surf.get_width()//2, y))
+        y += surf.get_height() + 6
+
+    hint = font_small.render("ESC per chiudere", True, (160, 160, 160))
+    screen.blit(hint, (cx - hint.get_width()//2, SCREEN_H - 50))
+
+
 #---------------------------------------------------------------------------------------#
 #funzione run del gioco
 
@@ -295,15 +339,26 @@ def main() -> None:
     start_screen_img = pygame.image.load("materiali\schermataI.png").convert_alpha()
     start_screen_img = pygame.transform.scale(start_screen_img, (SCREEN_W, SCREEN_H))
     START_BUTTON_RECT = pygame.Rect(522, 600, 300, 90)
-
+    
     # --- PULSANTE (schermata iniziale) ---
     #r -> raw string -> faccio capire a python che deve interpretare \ in modo letterale 
     ui_sheet = pygame.image.load(r"materiali\UI_grey_buttons_1.png").convert_alpha()
-    # ogni icona è 16x16 pixel nello sheet; prendo riga 0 col 4 (icona lista/elenco)
+    # ogni icona è 16x16 pixel nello sheet;
+    #considerando la prima colonna/riga come 'zero' come nelle liste
+    #prendo riga 0 colon 4 (icona lista/elenco)
     icon_size = 16
+    
+    #icona per la classifica
     icon_raw = ui_sheet.subsurface(pygame.Rect(4 * icon_size, 0 * icon_size, icon_size, icon_size))
     icon_img = pygame.transform.scale(icon_raw, (48, 48))
     CLASSIFICA_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 80, 60, 60)
+
+
+    #icona punto interrogativo per le istruzioni (riga 5, colonna 4)
+    icon_raw_info = ui_sheet.subsurface(pygame.Rect(4 * icon_size, 5 * icon_size, icon_size, icon_size))
+    icon_img_info = pygame.transform.scale(icon_raw_info, (48, 48))
+    INFO_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 150, 60, 60)
+
 
     # --- COSTANTI PERSONAGGIO ---
     FRAME_SIZE_samurai = 256
@@ -402,6 +457,7 @@ def main() -> None:
         mostra_classifica_start = False
         mostra_top_start = False
         switch_rect_start = None
+        mostra_istruzioni = False
         while in_start_screen:
             clock.tick(60)
             
@@ -413,14 +469,20 @@ def main() -> None:
                     if event.key == pygame.K_ESCAPE:
                         if mostra_classifica_start:
                             mostra_classifica_start = False
+                        elif mostra_istruzioni:
+                            mostra_istruzioni = False                        
                         else:
                             pygame.quit()
                             sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if not mostra_classifica_start and START_BUTTON_RECT.collidepoint(event.pos):
+                    if not mostra_classifica_start and not mostra_istruzioni and START_BUTTON_RECT.collidepoint(event.pos):
                         in_start_screen = False
                     if CLASSIFICA_BTN_RECT.collidepoint(event.pos):
                         mostra_classifica_start = not mostra_classifica_start
+                        mostra_istruzioni = False
+                    if INFO_BTN_RECT.collidepoint(event.pos):
+                        mostra_istruzioni = not mostra_istruzioni
+                        mostra_classifica_start = False
                     if mostra_classifica_start and event.type == pygame.MOUSEBUTTONDOWN:
                         if switch_rect_start and switch_rect_start.collidepoint(event.pos):
                             mostra_top_start = not mostra_top_start
@@ -441,12 +503,26 @@ def main() -> None:
                     classifica_dati = carica_classifica()
                 switch_rect_start = disegna_classifica(screen, font_wave, font_health, font_small,
                                    SCREEN_W, SCREEN_H, classifica_dati, mostra_top=mostra_top_start)
-
+            
+            if mostra_istruzioni:
+                overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 180))
+                screen.blit(overlay, (0, 0))
+                disegna_istruzioni(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H)
+            
             # --- disegno pulsante classifica ---
             btn_color = (80, 80, 120) if CLASSIFICA_BTN_RECT.collidepoint(pygame.mouse.get_pos()) else (50, 50, 90)
             pygame.draw.rect(screen, btn_color, CLASSIFICA_BTN_RECT, border_radius=8)
             pygame.draw.rect(screen, (180, 180, 220), CLASSIFICA_BTN_RECT, 2, border_radius=8)
             screen.blit(icon_img, (CLASSIFICA_BTN_RECT.x + 6, CLASSIFICA_BTN_RECT.y + 6))
+            
+            
+            # --- disegno pulsante istruzioni ---
+            btn_color_info = (80, 80, 120) if INFO_BTN_RECT.collidepoint(pygame.mouse.get_pos()) else (50, 50, 90)
+            pygame.draw.rect(screen, btn_color_info, INFO_BTN_RECT, border_radius=8)
+            pygame.draw.rect(screen, (180, 180, 220), INFO_BTN_RECT, 2, border_radius=8)
+            screen.blit(icon_img_info, (INFO_BTN_RECT.x + 6, INFO_BTN_RECT.y + 6))
+            
 
             pygame.display.flip()
 
