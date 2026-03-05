@@ -208,11 +208,44 @@ def carica_classifica(max_righe=8):
         risultato.append(r.rstrip("\n"))
     return risultato
     
-
+def carica_top_classifica(max_righe=8):
+    """Legge tutte le righe, le ordina per wave decrescente e restituisce le migliori max_righe."""
+    if not os.path.exists(CLASSIFICA_FILE):
+        return []
+    f = open(CLASSIFICA_FILE, "r", encoding="utf-8")
+    righe = f.readlines()
+    f.close()
+    # estraggo il numero di wave da ogni riga (formato: "... | Wave: NNN | ...")
+    def estrai_orda(riga):
+        parte_wave = riga.split("|")[2]
+        numero = parte_wave.split(":")[1]
+        return numero    
+        
+    righe_pulite = []
+    for r in righe:
+        #tolog l'acapo dalle righe del file
+        righe_pulite.append(r.rstrip("\n"))
+    
+    #key è il parametro(numero di orda) su cui mi baso per l'ordine crescente
+    #con reverse inverto la lista (ordine decrescente)
+    righe_pulite.sort(key=estrai_orda, reverse=True)
+    
+    
+    #se il file ha troppe poche righe, le ritorno tutte
+    if len(righe_pulite) <= 8:
+        return righe_pulite
+    
+    #prendo le prime della lista(le migliori)
+    migliori = []
+    for pos in range(max_righe):
+        migliori.append(righe_pulite[pos])
+    
+    return migliori_8
 
 def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H,
-                       classifica, nickname=""):
-    """Disegna la schermata classifica. Usata sia dal game over che dalla schermata iniziale."""
+                       classifica, nickname="", mostra_top=False):
+    """Disegna la schermata classifica. Usata sia dal game over che dalla schermata iniziale.
+       Restituisce il rect del pulsante switch per gestire i click nel loop chiamante."""
     cx = SCREEN_W // 2
 
     titolo = font_wave.render("CLASSIFICA", True, (255, 220, 60))
@@ -220,14 +253,31 @@ def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCR
 
     pygame.draw.line(screen, (120, 120, 120), (cx - 320, 120), (cx - 320, SCREEN_H - 80), 1)
 
-    storico_txt = font_health.render("Ultime partite:", True, (180, 220, 255))
-    screen.blit(storico_txt, (cx - 300, 130))
+    # etichetta modalità corrente
+    if mostra_top:
+        label = font_health.render("Top 8 per Wave:", True, (180, 220, 255))
+    else:
+        label = font_health.render("Ultime 8 partite:", True, (180, 220, 255))
+    screen.blit(label, (cx - 300, 130))
+
     i = 0
     for riga in classifica:
         colore = (255, 255, 100) if nickname and nickname.strip() in riga else (200, 200, 200)
         s = font_small.render(riga, True, colore)
         screen.blit(s, (cx - 300, 165 + i * 34))
         i += 1
+
+    # pulsante switch
+    if mostra_top:
+        btn_label = font_small.render("[ Ultime 8 ]", True, (255, 220, 60))
+    else:
+        btn_label = font_small.render("[ Top 8 Wave ]", True, (255, 220, 60))
+    switch_rect = pygame.Rect(cx + 260, 125, btn_label.get_width() + 16, 30)
+    pygame.draw.rect(screen, (60, 60, 90), switch_rect, border_radius=5)
+    pygame.draw.rect(screen, (180, 180, 100), switch_rect, 1, border_radius=5)
+    screen.blit(btn_label, (switch_rect.x + 8, switch_rect.y + 5))
+
+    return switch_rect
 
 #---------------------------------------------------------------------------------------#
 #funzione run del gioco
@@ -350,6 +400,8 @@ def main() -> None:
         # ================== SCHERMATA INIZIALE ==================
         in_start_screen = True
         mostra_classifica_start = False
+        mostra_top_start = False
+        switch_rect_start = None
         while in_start_screen:
             clock.tick(60)
             
@@ -369,16 +421,26 @@ def main() -> None:
                         in_start_screen = False
                     if CLASSIFICA_BTN_RECT.collidepoint(event.pos):
                         mostra_classifica_start = not mostra_classifica_start
-
+                    if mostra_classifica_start and event.type == pygame.MOUSEBUTTONDOWN:
+                        if switch_rect_start and switch_rect_start.collidepoint(event.pos):
+                            mostra_top_start = not mostra_top_start
+                            if mostra_top_start:
+                                classifica_dati = carica_top_classifica()
+                            else:
+                                classifica_dati = carica_classifica()
+                                
             screen.blit(start_screen_img, (0, 0))
 
             if mostra_classifica_start:
                 overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
                 overlay.fill((0, 0, 0, 180))
                 screen.blit(overlay, (0, 0))
-                classifica_dati = carica_classifica()
-                disegna_classifica(screen, font_wave, font_health, font_small,
-                                   SCREEN_W, SCREEN_H, classifica_dati)
+                if mostra_top_start:
+                    classifica_dati = carica_top_classifica()
+                else:
+                    classifica_dati = carica_classifica()
+                switch_rect_start = disegna_classifica(screen, font_wave, font_health, font_small,
+                                   SCREEN_W, SCREEN_H, classifica_dati, mostra_top=mostra_top_start)
 
             # --- disegno pulsante classifica ---
             btn_color = (80, 80, 120) if CLASSIFICA_BTN_RECT.collidepoint(pygame.mouse.get_pos()) else (50, 50, 90)
@@ -655,7 +717,10 @@ def main() -> None:
         salvato        = False
         classifica     = []
         inserimento_ok = False  # diventa True dopo INVIO
-
+        mostra_top_gameover = False
+        switch_rect_go = None
+        
+        
         while game_over:
             clock.tick(60)
 
@@ -686,7 +751,16 @@ def main() -> None:
                             sys.exit()
                         if event.key == pygame.K_SPACE:
                             game_over = False  # torna al while True esterno
-
+                
+                if event.type == pygame.MOUSEBUTTONDOWN and inserimento_ok:
+                    if switch_rect_go and switch_rect_go.collidepoint(event.pos):
+                        mostra_top_gameover = not mostra_top_gameover
+                        if mostra_top_gameover:
+                            classifica = carica_top_classifica()
+                        else:
+                            classifica = carica_classifica()
+                
+                
             # --- DISEGNO SFONDO ---
             screen.blit(backstage, (0, 0))
             shrine_img = get_shrine_img(shrine_current_hp)
@@ -732,8 +806,8 @@ def main() -> None:
 
             else:
                 # --- SCHERMATA CLASSIFICA ---
-                disegna_classifica(screen, font_wave, font_health, font_small,
-                                   SCREEN_W, SCREEN_H, classifica, nickname)
+                switch_rect_go = disegna_classifica(screen, font_wave, font_health, font_small,
+                                   SCREEN_W, SCREEN_H, classifica, nickname, mostra_top_gameover)
                 
                 
                 # statistiche ultima partita (colonna sinistra)
