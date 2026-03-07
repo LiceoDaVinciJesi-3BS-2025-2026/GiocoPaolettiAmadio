@@ -34,11 +34,9 @@ def load_frames(sheet, ROWS, COLS, FRAME_SIZE_W, FRAME_SIZE_H=None):
 def rescale_frames(lista_frames, fattore):
     """
     Riscala tutti i frame di una lista in base a un fattore moltiplicativo.
-
     Args:
         lista_frames: Lista di superfici pygame da riscalare.
         fattore:      Fattore di scala (es. 2 = doppia dimensione, 0.5 = metà dimensione).
-
     Returns:
         Nuova lista di superfici pygame riscalate.
     """
@@ -127,7 +125,7 @@ def build_spawn_queue(params):
     queue = [] # lista che conterrà tutti i nemici che appariranno
     for coso in range(params[0]): # Ripete per ogni nemico da generare
         #Genera un numero casuale tra 0 e 1 e lo confronta con la probabilità drago
-        # se il numero è minore della probabilità spawn di un drago, altrimenti uno slime
+        # se il numero è minore della probabilità allora spawn di un drago, altrimenti uno slime
         if random.random() < params[1]:
             e_type = 'dragon'
         else:
@@ -223,7 +221,7 @@ def carica_top_classifica(max_righe=8):
         
     righe_pulite = []
     for r in righe:
-        #tolog l'acapo dalle righe del file
+        #tolgo l'acapo dalle righe del file
         righe_pulite.append(r.rstrip("\n"))
     
     #key è il parametro(numero di orda) su cui mi baso per l'ordine crescente
@@ -262,12 +260,21 @@ def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCR
 
     i = 0
     for riga in classifica:
-        colore = (255, 255, 100) if nickname and nickname.strip() in riga else (200, 200, 200)
+
+        if nickname and nickname.strip() in riga:
+            colore = (255, 255, 100)
+        else:
+            colore = (200, 200, 200)
+
         s = font_small.render(riga, True, colore)
-        screen.blit(s, (cx - 300, 165 + i * 34))
+        x_pos = cx - 300
+        y_pos = 165 + i * 34
+
+        screen.blit(s, (x_pos, y_pos))
+
         i += 1
 
-    # pulsante switch
+    # pulsante switch tipo di classifica
     if mostra_top:
         btn_label = font_small.render("[ Ultime 8 ]", True, (255, 220, 60))
     else:
@@ -361,7 +368,7 @@ def main() -> None:
     CLASSIFICA_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 80, 60, 60)
 
 
-    #icona punto interrogativo per le istruzioni (riga 5, colonna 4)
+    #icona per le istruzioni (riga 5, colonna 4)
     icon_raw_info = ui_sheet.subsurface(pygame.Rect(4 * icon_size, 5 * icon_size, icon_size, icon_size))
     icon_img_info = pygame.transform.scale(icon_raw_info, (48, 48))
     INFO_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 150, 60, 60)
@@ -394,7 +401,7 @@ def main() -> None:
     SPAWN_INTERVAL = 400
     
     # --- COSTANTI IN GIOCO ---
-    HIT_FLASH_DURATION = 8
+    HIT_FLASH_DURATION = 8      #animazione di un nemico colpito, lampeggia diventando rosso per 0.13 secondi = 8frames/60
 
     # --- CARICAMENTO ASSET (una volta sola) ---
     backstage = pygame.image.load("materiali\StageRettangolare.png").convert_alpha()
@@ -404,16 +411,24 @@ def main() -> None:
     shrine_75 = pygame.transform.scale(shrine_75, (int(shrine_75.get_width()*0.5), int(shrine_75.get_height()*0.5)))
     shrine_rect = shrine_75.get_rect(center = (SCREEN_W//2, SCREEN_H//2))
 
-    shrine_100 = load_shrine_state("materiali\Tempio1nosfondo.png", shrine_rect)
+    shrine_100 = load_shrine_state("materiali\Tempio1nosfondo.png", shrine_rect) # immagine del tempio con 100 HP già ridimensionata correttamente grazie alla funzione
     shrine_50  = load_shrine_state("materiali\Tempio50hpRifilato.png", shrine_rect)
     shrine_25  = load_shrine_state("materiali\Tempio25hpRifilato.png", shrine_rect)
     shrine_0   = load_shrine_state("materiali\Tempio0hpRifilato.png", shrine_rect)
 
     def get_shrine_img(hp):
-        if   hp > 75: return shrine_100
-        elif hp > 50: return shrine_75
-        elif hp > 25: return shrine_50
-        elif hp > 0:  return shrine_25
+        """
+        in base all'hp ritorna le immagini del tempio in ase al danneggiamento
+        """
+        if hp > 75:
+            return shrine_100
+        elif hp > 50:
+            return shrine_75
+        elif hp > 25:
+            return shrine_50
+        elif hp > 0:
+            return shrine_25
+
         return shrine_0
 
     # --- CARICAMENTO SAMURAI ---
@@ -449,8 +464,9 @@ def main() -> None:
     dragon_sheet        = pygame.image.load("materiali\Baby_Dragon_2D.png").convert_alpha()
     frames_dragon_left  = rescale_frames(load_frames(dragon_sheet, 2, 2, 64, 64), 2.5)
     frames_dragon_right = [pygame.transform.flip(f, True, False) for f in frames_dragon_left]
-
-    font_health = pygame.font.Font(None, 36)
+    
+    #vari tipi di font in base alla grandezza
+    font_health = pygame.font.Font(None, 36) 
     font_wave   = pygame.font.Font(None, 72)
     font_small  = pygame.font.Font(None, 30)
 
@@ -463,16 +479,17 @@ def main() -> None:
         if musica_corrente != MUSICA_MENU:
             musica_corrente = MUSICA_MENU
             pygame.mixer.music.load(MUSICA_MENU)
-            pygame.mixer.music.play(-1)   # -1 = loop infinito
-        # ==========================================================
+            pygame.mixer.music.play(-1)   # -1 = loop infinito, ad esempio con 0 si ripete una volta
+        
         # ================== SCHERMATA INIZIALE ==================
-        in_start_screen = True
-        mostra_classifica_start = False
-        mostra_top_start = False
-        switch_rect_start = None
-        mostra_istruzioni = False
+        in_start_screen = True               # in_start_screen: indica se sei nella schermata iniziale; il ciclo while continua finché è True.                  
+        mostra_classifica_start = False      # mostra_classifica_start: True se la classifica deve essere mostrata.
+        mostra_top_start = False            # mostra_top_start: True se vuoi mostrare il top della classifica invece della classifica completa.
+        switch_rect_start = None            # switch_rect_start: è un rettangolo cliccabile che permette di alternare tra classifica normale e top.
+        mostra_istruzioni = False            # mostra_istruzioni: True se vuoi mostrare le istruzioni di gioco.
         while in_start_screen:
             clock.tick(60)
+                
             
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -550,6 +567,7 @@ def main() -> None:
         # ==========================================================
         
         # ================== INIT VARIABILI DI GIOCO ==================
+        # statistiche e stati prima di inizare il gioco
         wave_state   = "WAVE_SPAWN"
         current_wave = 1
         spawn_queue  = build_spawn_queue(calcola_orda(current_wave))
@@ -589,28 +607,51 @@ def main() -> None:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
-
+ 
             if not game_over:
                 keys       = pygame.key.get_pressed()
                 is_walking = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
                 speed      = SPEED_WALK if is_walking else SPEED_RUN
                 moved      = False
 
-                # --- MOVIMENTO ---
-                if keys[pygame.K_w] or keys[pygame.K_UP]:
-                    py -= speed; current_frames = frames_walk_up if is_walking else frames_run_up; moved = True
+                               # --- MOVIMENTO PERSONAGGIO ---
+                if keys[pygame.K_w] or keys[pygame.K_UP]:    #se si preme il tasto w o la freccia direzionale verso l'alto
+                    py -= speed                           #asse y diminuisce andando verso l'alto in python
+                    if is_walking:      #se viene utilizzata quella combinazione di tasti per camminare allora:
+                        current_frames = frames_walk_up      #cammina verso alto 
+                    else:
+                        current_frames = frames_run_up    #sennò corre
+                    moved = True
                 elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
-                    py += speed; current_frames = frames_walk_down if is_walking else frames_run_down; moved = True
+                    py += speed                         #asse y aumenta andando verso il basso in python
+                    if is_walking:
+                        current_frames = frames_walk_down
+                    else:
+                        current_frames = frames_run_down
+                    moved = True
                 elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
-                    px -= speed; side_pg = 'L'; current_frames = frames_walk_left if is_walking else frames_run_left; moved = True
+                    px -= speed          #asse x dimuisce andando verso sinistra in python
+                    side_pg = 'L'           #personaggio rivolto verso sinistra
+                    if is_walking:              #se cammina verso sx si utilizzano i frame, impostati precedentemente, del personaggio che cammina a sx
+                        current_frames = frames_walk_left
+                    else:
+                        current_frames = frames_run_left    #altrimenti corre normalmente verso destra
+                    moved = True
                 elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-                    px += speed; side_pg = 'R'; current_frames = frames_walk_right if is_walking else frames_run_right; moved = True
-
-                if not moved:
+                    px += speed             #asse x aumenta andando verso destra in python
+                    side_pg = 'R'           #personaggio rivolto verso destra
+                    if is_walking:           #se cammina verso dx si utilizzano i frame, impostati precedentemente, del personaggio che cammmina a dx
+                        current_frames = frames_walk_right
+                    else:
+                        current_frames = frames_run_right  #altrimenti corre normalmente verso destra
+                    moved = True
+                    
+                if not moved: #se non si muove, sta fermo nella posizione del movimento precedente
                     current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
-
+                    
                 anim_speed = ANIM_SPEED if is_walking else ANIM_SPEED * 1.5
                 frame_index += anim_speed
+                
                 if frame_index >= len(current_frames):
                     frame_index = 0
 
@@ -761,8 +802,6 @@ def main() -> None:
                     pygame.mixer.music.stop()
                     musica_corrente = ""
 
-                
-                
                 # --- DISEGNO COLTELLI ---
                 for k in knives:
                     screen.blit(k[4], (int(k[0]) - k[5], int(k[1]) - k[5]))
@@ -796,7 +835,7 @@ def main() -> None:
                     pygame.draw.circle(screen, (255, 220, 0),   (int(ox), int(oy)), ORB_RADIUS)
                     pygame.draw.circle(screen, (255, 255, 210), (int(ox)-3, int(oy)-3), ORB_RADIUS//3)
 
-            # --- UI ---
+            # scritta degli hp del tempio e tempio selezionato
             pygame.draw.rect(screen, (50, 50, 50),  (SCREEN_W//2-150, 30, 300, 20))
             pygame.draw.rect(screen, (0, 200, 255), (SCREEN_W//2-150, 30, (shrine_current_hp/shrine_max_hp)*300, 20))
             txt = font_health.render(f"SHRINE HP: {int(shrine_current_hp)}", True, (255,255,255))
@@ -805,11 +844,11 @@ def main() -> None:
             wave_txt = font_small.render(f"WAVE  {current_wave}", True, (255, 220, 80))
             screen.blit(wave_txt, (20, 20))
 
-            if wave_state == "WAVE_ACTIVE":
+            if wave_state == "WAVE_ACTIVE":     #se l'orda è cominciata, si scrivono i nemici presenti
                 rem_txt = font_small.render(f"Nemici: {len(enemies)}", True, (220, 220, 220))
                 screen.blit(rem_txt, (20, 48))
 
-            if wave_state == "WAVE_PAUSE":
+            if wave_state == "WAVE_PAUSE":   #se l'orda di non è ancora cominciata, allora abbiamo il timer
                 seconds_left = max(1, int((PAUSE_DURATION - pause_timer) / 1000) + 1)
                 ann = font_wave.render(f"WAVE  {current_wave + 1}  in  {seconds_left}...", True, (255, 230, 60))
                 screen.blit(ann, (SCREEN_W//2 - ann.get_width()//2, SCREEN_H//2 - 40))
