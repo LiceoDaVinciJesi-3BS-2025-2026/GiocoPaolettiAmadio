@@ -328,7 +328,14 @@ def disegna_istruzioni(screen, font_wave, font_health, font_small, SCREEN_W, SCR
 
 def main() -> None:
     pygame.init()
-    
+        
+    # ===================== AGGIUNTA AUDIO =====================
+    pygame.mixer.init()
+        
+    MUSICA_MENU  = "materiali\danzadellelame.mp3"
+    MUSICA_GIOCO = "materiali\danzadellelame1.mp3"
+    musica_corrente = ""   # tiene traccia di quale file è caricato
+    # ==========================================================
     # FINESTRA
     SCREEN_W, SCREEN_H = 1344, 768
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
@@ -451,7 +458,13 @@ def main() -> None:
     # LOOP ESTERNO: schermata iniziale → partita → game over → torna all'inizio
     # ==================================================================================
     while True:
-
+                # ===================== AGGIUNTA AUDIO =====================
+    # Avvia la musica del menu solo se non stava già suonando
+        if musica_corrente != MUSICA_MENU:
+            musica_corrente = MUSICA_MENU
+            pygame.mixer.music.load(MUSICA_MENU)
+            pygame.mixer.music.play(-1)   # -1 = loop infinito
+        # ==========================================================
         # ================== SCHERMATA INIZIALE ==================
         in_start_screen = True
         mostra_classifica_start = False
@@ -525,7 +538,17 @@ def main() -> None:
             
 
             pygame.display.flip()
+                # ===================== AGGIUNTA AUDIO =====================
+        # Passaggio menu → gioco: carica e avvia la musica di gioco
 
+        musica_corrente = MUSICA_GIOCO
+        print("Carico:", MUSICA_GIOCO)
+        pygame.mixer.music.load(MUSICA_GIOCO)
+        print("Loaded OK")
+        pygame.mixer.music.play(-1)
+        print("Playing:", pygame.mixer.music.get_busy())
+        # ==========================================================
+        
         # ================== INIT VARIABILI DI GIOCO ==================
         wave_state   = "WAVE_SPAWN"
         current_wave = 1
@@ -734,7 +757,12 @@ def main() -> None:
                     running   = False
                     game_over = True
                     durata_sec = (pygame.time.get_ticks() - tempo_inizio) / 1000.0
+                                    
+                    pygame.mixer.music.stop()
+                    musica_corrente = ""
 
+                
+                
                 # --- DISEGNO COLTELLI ---
                 for k in knives:
                     screen.blit(k[4], (int(k[0]) - k[5], int(k[1]) - k[5]))
