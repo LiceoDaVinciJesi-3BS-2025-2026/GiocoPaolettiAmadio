@@ -188,7 +188,8 @@ def salva_partita(nickname, wave, nemici, durata_sec, coltelli):
     data = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
     minuti = int(durata_sec // 60)
     secondi = int(durata_sec % 60)
-    riga = f"{data} | {nickname:<12} | Wave: {wave:>3} | Nemici: {nemici:>4} | Durata: {minuti:02d}:{secondi:02d} | Coltelli: {coltelli:>4}\n"
+    nickname = nickname[:12]
+    riga = f"{data} | {nickname:<3} | Wave: {wave:>3} | Nemici: {nemici:>4} | Durata: {minuti:02d}:{secondi:02d} | Coltelli: {coltelli:>4}\n"
     f = open(CLASSIFICA_FILE, "a", encoding="utf-8") 
     f.write(riga)
     f.close()
@@ -238,7 +239,7 @@ def carica_top_classifica(max_righe=8):
     for pos in range(max_righe):
         migliori.append(righe_pulite[pos])
     
-    return migliori_8
+        return migliori_8
 
 def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H,
                        classifica, nickname="", mostra_top=False):
@@ -340,7 +341,7 @@ def main() -> None:
     pygame.mixer.init()
         
     MUSICA_MENU  = "materiali\danzadellelame.mp3"
-    MUSICA_GIOCO = "materiali\danzadellelame1.mp3"
+    MUSICA_GIOCO = "materiali\danzadellelame2.mp3"
     musica_corrente = ""   # tiene traccia di quale file è caricato
     # ==========================================================
     # FINESTRA
@@ -885,7 +886,7 @@ def main() -> None:
                             # --- cancella in inserimento ---
                             nickname = nickname[:-1]
                         else:
-                            if len(nickname) < 6 and event.unicode.isprintable():
+                            if len(nickname) <= 8 and event.unicode.isprintable():
                                 nickname += event.unicode
                     else:
                         # --- fase di visualizzazione risultati ---
@@ -957,18 +958,18 @@ def main() -> None:
                 minuti  = int(durata_sec // 60)
                 secondi = int(durata_sec % 60)
                 tua_txt = font_health.render("La tua partita:", True, (180, 220, 255))
-                screen.blit(tua_txt, (80, 130))
+                screen.blit(tua_txt, (70, 130))
                 stats = [
-                    f"Nickname:          {nickname.strip()}",
-                    f"Wave raggiunta:    {current_wave}",
-                    f"Nemici uccisi:     {nemici_uccisi}",
-                    f"Durata:            {minuti:02d}:{secondi:02d}",
+                    f"Nickname: {nickname.strip()}",
+                    f"Wave raggiunta: {current_wave}",
+                    f"Nemici uccisi:  {nemici_uccisi}",
+                    f"Durata:         {minuti:02d}:{secondi:02d}",
                     f"Coltelli lanciati: {coltelli_sparati}",
                 ]
                 i = 0
                 for riga in stats:
                     s = font_small.render(riga, True, (210, 210, 210))
-                    screen.blit(s, (80, 165 + i * 32))
+                    screen.blit(s, (70, 165 + i * 32))
                     i += 1
 
                 hint2 = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
