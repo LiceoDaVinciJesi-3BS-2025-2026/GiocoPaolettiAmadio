@@ -105,7 +105,7 @@ def make_knife_surface(angle_rad, KNIFE_LENGTH, KNIFE_WIDTH):
 
 # --- SISTEMA ORDE ---
 def calcola_orda(wave_num, coefficiente_dif):
-    totale      = 4 + (wave_num - 1) * coefficiente_dif
+    totale      = int(4 + (wave_num - 1) * coefficiente_dif)
     prob_dragon = min(0.1 + (wave_num - 1) * 0.1, 0.7)
     hp_mult     = 1.0 + (wave_num - 1) * 0.1 * coefficiente_dif
     params = [totale, prob_dragon, hp_mult]
@@ -185,65 +185,130 @@ def spawn_one(entry, enemies, SCREEN_W, SCREEN_H):
 dirs = PlatformDirs("CrimsonGuard", ensure_exists=True)  
 CLASSIFICA_FILE = dirs.user_data_path / "classifica.txt"
 
-def salva_partita(nickname, wave, nemici, durata_sec, coltelli):
+def chiave_modalita(settings):
+    """Crea per ogni set di parametri di gioco una chiave,
+       sequenza di riconoscimento."""
+    parti = []
+    for v in settings:
+        parti.append(str(round(v, 2)))
+    return "-".join(parti)
+
+
+
+def salva_partita(nickname, wave, nemici, durata_sec, coltelli, settings):
     """Aggiunge una riga al file classifica.txt"""
     data = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
     minuti = int(durata_sec // 60)
     secondi = int(durata_sec % 60)
     riga = f"{data} | {nickname:<12} | Wave: {wave:>3} | Nemici: {nemici:>4} | Durata: {minuti:02d}:{secondi:02d} | Coltelli: {coltelli:>4}\n"
-    f = open(CLASSIFICA_FILE, "a", encoding="utf-8") 
-    f.write(riga)
+    chiave  = chiave_modalita(settings)
+    intestazione = f"[MODALITA:{chiave}]\n"
+    
+    # leggo tutto il file esistente
+    if os.path.exists(CLASSIFICA_FILE):
+        f = open(CLASSIFICA_FILE, "r", encoding="utf-8")
+        contenuto = f.readlines()
+        f.close()
+    else:
+        contenuto = []
+    
+    # cerco se la modalità esiste già
+    trovata = False
+    nuove_righe = []
+    i = 0
+    while i < len(contenuto):
+        nuove_righe.append(contenuto[i])
+        if contenuto[i] == intestazione:
+            trovata = True
+            # aggiungo la riga subito dopo l'intestazione, prima della prossima modalità
+            i += 1
+            while i < len(contenuto) and not contenuto[i].startswith("[MODALITA:"):
+                nuove_righe.append(contenuto[i])
+                i += 1
+            nuove_righe.append(riga)
+            continue
+        i += 1
+
+    # se la modalità non esiste, la aggiungo in fondo
+    if not trovata:
+        nuove_righe.append(intestazione)
+        nuove_righe.append(riga)
+    
+    
+    f = open(CLASSIFICA_FILE, "w", encoding="utf-8") 
+    f.writelines(nuove_righe)
     f.close()
     
-def carica_classifica(max_righe=8):
+def carica_classifica(max_righe=8, sets=None):
     """Legge le ultime max_righe dal file classifica"""
     if not os.path.exists(CLASSIFICA_FILE):
         return []
     f = open(CLASSIFICA_FILE, "r", encoding="utf-8")
-    righe = f.readlines()
+    contenuto = f.readlines()
     f.close()
-    ultime = righe[-max_righe:]
-    risultato = []
-    for r in ultime:
-        risultato.append(r.rstrip("\n"))
-    return risultato
     
-def carica_top_classifica(max_righe=8):
+    if sets is None:
+        # fallback: prende tutte le righe non-intestazione
+        righe = []
+        for r in contenuto:
+            if not r.startswith("[MODALITA:"):
+                righe.append(r.rstrip("\n"))
+        return righe[-max_righe:]
+    
+    #se prosegue, vuol dire ci sono dei settings
+    chiave      = chiave_modalita(sets)
+    intestazione = f"[MODALITA:{chiave}]\n"
+
+    # trovo il blocco della modalità corrente
+    righe_modalita = []
+    dentro = False
+    for r in contenuto:
+        if r == intestazione:
+            dentro = True
+            continue
+        if r.startswith("[MODALITA:") and dentro:
+            break
+        
+        #r.strip() è un controllo per la riga non vuota
+        if dentro and r.strip():
+            righe_modalita.append(r.rstrip("\n"))
+
+    if max_righe is None:
+            return righe_modalita
+    return righe_modalita[-max_righe:]
+    
+    
+def carica_top_classifica(max_righe=8, sets=None):
     """Legge tutte le righe, le ordina per wave decrescente e restituisce le migliori max_righe."""
-    if not os.path.exists(CLASSIFICA_FILE):
+    righe = carica_classifica(max_righe=None, sets=sets)
+    if not righe:
         return []
-    f = open(CLASSIFICA_FILE, "r", encoding="utf-8")
-    righe = f.readlines()
-    f.close()
+    
+    
     # estraggo il numero di wave da ogni riga (formato: "... | Wave: NNN | ...")
     def estrai_orda(riga):
         parte_wave = riga.split("|")[2]
         numero = parte_wave.split(":")[1]
         return numero    
-        
-    righe_pulite = []
-    for r in righe:
-        #tolog l'acapo dalle righe del file
-        righe_pulite.append(r.rstrip("\n"))
     
     #key è il parametro(numero di orda) su cui mi baso per l'ordine crescente
     #con reverse inverto la lista (ordine decrescente)
-    righe_pulite.sort(key=estrai_orda, reverse=True)
-    
-    
-    #se il file ha troppe poche righe, le ritorno tutte
-    if len(righe_pulite) <= 8:
-        return righe_pulite
-    
-    #prendo le prime della lista(le migliori)
+    righe.sort(key=estrai_orda, reverse=True)
+
+    if len(righe) <= max_righe:
+        return righe
+
     migliori = []
     for pos in range(max_righe):
-        migliori.append(righe_pulite[pos])
+        migliori.append(righe[pos])
+    return migliori
     
-    return migliori_8
+    
+       
+    
 
 def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H,
-                       classifica, nickname="", mostra_top=False):
+                       classifica, nickname="", mostra_top=False, GameEnd = True):
     """Disegna la schermata classifica. Usata sia dal game over che dalla schermata iniziale.
        Restituisce il rect del pulsante switch per gestire i click nel loop chiamante."""
     cx = SCREEN_W // 2
@@ -276,7 +341,15 @@ def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCR
     pygame.draw.rect(screen, (60, 60, 90), switch_rect, border_radius=5)
     pygame.draw.rect(screen, (180, 180, 100), switch_rect, 1, border_radius=5)
     screen.blit(btn_label, (switch_rect.x + 8, switch_rect.y + 5))
-
+    
+    if GameEnd:
+        hint = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
+                
+    else:
+        hint = font_small.render("ESC per chiudere", True, (160, 160, 160))
+        
+    screen.blit(hint, (cx - hint.get_width()//2, SCREEN_H - 50))
+    
     return switch_rect
 
 
@@ -610,7 +683,8 @@ def main() -> None:
                             pygame.quit()
                             sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if not mostra_classifica_start and not mostra_istruzioni and START_BUTTON_RECT.collidepoint(event.pos):
+                    #mi assicuro che nessun menù sia aperto per l'avvio del gioco
+                    if not mostra_classifica_start and not mostra_istruzioni and not mostra_settings and START_BUTTON_RECT.collidepoint(event.pos):
                         in_start_screen = False
                     if CLASSIFICA_BTN_RECT.collidepoint(event.pos):
                         mostra_classifica_start = not mostra_classifica_start
@@ -658,9 +732,9 @@ def main() -> None:
                         if switch_rect_start and switch_rect_start.collidepoint(event.pos):
                             mostra_top_start = not mostra_top_start
                             if mostra_top_start:
-                                classifica_dati = carica_top_classifica()
+                                classifica_dati = carica_top_classifica(sets=settings)
                             else:
-                                classifica_dati = carica_classifica()
+                                classifica_dati = carica_classifica(sets=settings)
                                 
             screen.blit(start_screen_img, (0, 0))
 
@@ -669,11 +743,11 @@ def main() -> None:
                 overlay.fill((0, 0, 0, 180))
                 screen.blit(overlay, (0, 0))
                 if mostra_top_start:
-                    classifica_dati = carica_top_classifica()
+                    classifica_dati = carica_top_classifica(sets=settings)
                 else:
-                    classifica_dati = carica_classifica()
+                    classifica_dati = carica_classifica(sets=settings)
                 switch_rect_start = disegna_classifica(screen, font_wave, font_health, font_small,
-                                   SCREEN_W, SCREEN_H, classifica_dati, mostra_top=mostra_top_start)
+                                   SCREEN_W, SCREEN_H, classifica_dati, mostra_top=mostra_top_start, GameEnd=False)
             
             if mostra_istruzioni:
                 overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
@@ -999,13 +1073,16 @@ def main() -> None:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE: 
+                        pygame.quit()
+                        sys.exit()
                     if not inserimento_ok:
                         # --- fase di digitazione nickname ---
                         if event.key == pygame.K_RETURN and nickname.strip():
                             # salva e carica classifica
                             salva_partita(nickname.strip(), current_wave,
-                                          nemici_uccisi, durata_sec, coltelli_sparati)
-                            classifica     = carica_classifica()
+                                          nemici_uccisi, durata_sec, coltelli_sparati, settings)
+                            classifica     = carica_classifica(sets=settings)
                             inserimento_ok = True
                         elif event.key == pygame.K_BACKSPACE:
                             # --- cancella in inserimento ---
@@ -1025,9 +1102,9 @@ def main() -> None:
                     if switch_rect_go and switch_rect_go.collidepoint(event.pos):
                         mostra_top_gameover = not mostra_top_gameover
                         if mostra_top_gameover:
-                            classifica = carica_top_classifica()
+                            classifica = carica_top_classifica(sets=settings)
                         else:
-                            classifica = carica_classifica()
+                            classifica = carica_classifica(sets=settings)
                 
                 
             # --- DISEGNO SFONDO ---
@@ -1076,7 +1153,7 @@ def main() -> None:
             else:
                 # --- SCHERMATA CLASSIFICA ---
                 switch_rect_go = disegna_classifica(screen, font_wave, font_health, font_small,
-                                   SCREEN_W, SCREEN_H, classifica, nickname, mostra_top_gameover)
+                                   SCREEN_W, SCREEN_H, classifica, nickname, mostra_top_gameover, GameEnd=True)
                 
                 
                 # statistiche ultima partita (colonna sinistra)
@@ -1097,8 +1174,7 @@ def main() -> None:
                     screen.blit(s, (80, 165 + i * 32))
                     i += 1
 
-                hint2 = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
-                screen.blit(hint2, (SCREEN_W//2 - hint2.get_width()//2, SCREEN_H - 50))
+                
 
             
             pygame.display.flip()
