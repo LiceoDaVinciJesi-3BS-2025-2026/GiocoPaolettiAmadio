@@ -440,6 +440,8 @@ def disegna_settings(screen, font_wave, font_health, font_small, SCREEN_W, SCREE
         "Volume musica"
     ]
     
+    #cifre decimali di ogni parametro
+    decimali = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 2, 1, 0, 2, 1, 0, 1, 2, 2]
     
     # colonna sinistra: indici 0-8, colonna destra: indici 9-17
     col_x = [cx - 580, cx + 20]   # x di partenza testo per ogni colonna
@@ -454,8 +456,11 @@ def disegna_settings(screen, font_wave, font_health, font_small, SCREEN_W, SCREE
         riga     = i if i < 10 else i - 10
         y        = y_start + riga * y_step
 
-        valore = settings[i]
-        testo  = font_small.render(f"{voci[i]}:  {valore}", True, (220, 220, 180))
+        if decimali[i] > 0:
+            valore_str = f"{settings[i]:.{decimali[i]}f}"
+        else:
+            valore_str = str(settings[i])
+        testo  = font_small.render(f"{voci[i]}:  {valore_str}", True, (220, 220, 180))
         screen.blit(testo, (col_x[colonna], y))
 
         r_minus = pygame.Rect(btn_x[colonna],      y, 32, 28)
@@ -471,6 +476,7 @@ def disegna_settings(screen, font_wave, font_health, font_small, SCREEN_W, SCREE
 
     # linea divisoria verticale tra le due colonne
     pygame.draw.line(screen, (100, 100, 140), (cx - 10, 100), (cx - 10, SCREEN_H - 60), 1)
+    
 
     hint = font_small.render("ESC per chiudere", True, (160, 160, 160))
     screen.blit(hint, (cx - hint.get_width()//2, SCREEN_H - 40))
@@ -566,7 +572,7 @@ def main() -> None:
     DRAGON_DAMAGE = 0.07
     
     # -- costante shrine ---
-    shrine_max_hp = 100.0
+    shrine_max_hp = 100
     
     
     # --- durata danno in game ---
