@@ -104,10 +104,11 @@ def make_knife_surface(angle_rad, KNIFE_LENGTH, KNIFE_WIDTH):
     return surf
 
 # --- SISTEMA ORDE ---
-def calcola_orda(wave_num, coefficiente_dif):
-    totale      = int(4 + (wave_num - 1) * coefficiente_dif)
-    prob_dragon = min(0.1 + (wave_num - 1) * 0.1, 0.7)
-    hp_mult     = 1.0 + (wave_num - 1) * 0.1 * coefficiente_dif
+def calcola_orda(wave_num, sets):
+    totale      = int(4 + (wave_num - 1) * sets[17])
+    #massimo raggiunto intorno alla wave 7
+    prob_dragon = min(sets[18]*(wave_num / 7), sets[18])
+    hp_mult     = 1.0 + (wave_num - 1) * 0.1 * sets[17]
     params = [totale, prob_dragon, hp_mult]
     return params #parametri per ogni orda, aumentati mano a mano che le ordine aumentano
 
@@ -328,7 +329,15 @@ def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCR
 
     i = 0
     for riga in classifica:
-        colore = (255, 255, 100) if nickname and nickname.strip() in riga else (200, 200, 200)
+        parti = []
+        for p in riga.split("|"):
+            parti.append(p.strip())
+        colore = (200, 200, 200)
+        for parte in parti:
+            if nickname and parte == nickname.strip():
+                colore = (255, 255, 100)
+                break
+            
         s = font_small.render(riga, True, colore)
         screen.blit(s, (cx - 300, 165 + i * 34))
         i += 1
@@ -426,7 +435,9 @@ def disegna_settings(screen, font_wave, font_health, font_small, SCREEN_W, SCREE
         "Danno slime sul tempio",                                   
         "Velocità slime",                                    
         "Pausa tra orde (ms)",
-        "Velocità incremento difficoltà"
+        "Velocità incremento difficoltà",
+        "% max spawn draghi",
+        "Volume musica"
     ]
     
     
@@ -434,13 +445,13 @@ def disegna_settings(screen, font_wave, font_health, font_small, SCREEN_W, SCREE
     col_x = [cx - 580, cx + 20]   # x di partenza testo per ogni colonna
     btn_x = [cx - 130, cx + 470]  # x di partenza pulsanti per ogni colonna
 
-    btn_rects = [None] * 18
+    btn_rects = []
     y_start = 110
     y_step  = 52
 
-    for i in range(18):
-        colonna  = 0 if i < 9 else 1
-        riga     = i if i < 9 else i - 9
+    for i in range(20):
+        colonna  = 0 if i < 10 else 1
+        riga     = i if i < 10 else i - 10
         y        = y_start + riga * y_step
 
         valore = settings[i]
@@ -456,7 +467,7 @@ def disegna_settings(screen, font_wave, font_health, font_small, SCREEN_W, SCREE
         screen.blit(icon_minus, (r_minus.x + 0, r_minus.y - 2))
         screen.blit(icon_plus,  (r_plus.x  + 0, r_plus.y  - 2))
 
-        btn_rects[i] = (r_minus, r_plus)
+        btn_rects.append((r_minus, r_plus))
 
     # linea divisoria verticale tra le due colonne
     pygame.draw.line(screen, (100, 100, 140), (cx - 10, 100), (cx - 10, SCREEN_H - 60), 1)
@@ -552,7 +563,7 @@ def main() -> None:
     SLIME_SPEED = 2.0
     DRAGON_SPEED = 1.2
     SLIME_DAMAGE = 0.05
-    DRAGON_DAMAGE = 0.05
+    DRAGON_DAMAGE = 0.07
     
     # -- costante shrine ---
     shrine_max_hp = 100.0
@@ -564,6 +575,11 @@ def main() -> None:
     # --- coefficiente difficoltà crescente del gioco ---
     COEFF_DIF = 2
 
+    # --- probabilità massimo di spawn del drago in percentuale
+    prob_dragon_max = 0.7
+
+    # --- volume musica in game ---
+    STANDARD_VOLUME = 0.5
     
     # --- SETTINGS MODIFICABILI DA UI ---
     settings = [
@@ -585,6 +601,8 @@ def main() -> None:
             SLIME_SPEED,
             PAUSE_DURATION,
             COEFF_DIF,
+            prob_dragon_max,
+            STANDARD_VOLUME
     ]
     
 
@@ -668,6 +686,8 @@ def main() -> None:
         if musica_corrente != MUSICA_MENU:
             musica_corrente = MUSICA_MENU
             pygame.mixer.music.load(MUSICA_MENU)
+            #ssettings[19] è il volume preimpostato, valore tra 0.0 e 1.0
+            pygame.mixer.music.set_volume(settings[19])
             pygame.mixer.music.play(-1)   # -1 = loop infinito, ad esempio con 0 si ripete una volta
         # ================== SCHERMATA INIZIALE ==================
         in_start_screen = True
@@ -724,20 +744,35 @@ def main() -> None:
                                 step = 0.1
                             
                             #step diverso per danni mostri
-                            elif i == 11 or i == 14:
+                            elif i == 11 or i == 14 or i == 18 or i == 19:
                                 step = 0.01
                             
                             else:
                                 step = 1
                                 
                             if r_minus.collidepoint(event.pos):
-                                #round evita errori di rappresentazione decimale
-                                settings[i] = round(max(step, settings[i] - step), 2)
+                                if i == 18 or i == 19:
+                                    #la musica può arrivare anche a zero(muto)
+                                    #la prob dei draghi può esser nulla(solo slime)
+                                    #round evita errori di rappresentazione decimale
+                                    settings[i] = round(max(0, settings[i] - step), 2)
+                                else:
+                                    #per il resto, il valore minimo è lo step
+                                    #round evita errori di rappresentazione decimale
+                                    settings[i] = round(max(step, settings[i] - step), 2)
+                                    
                             if r_plus.collidepoint(event.pos):
-                                #round evita errori di rappresentazione decimale
-                                settings[i] = round(settings[i] + step, 2)
+                                if i == 18 or i == 19:
+                                    #max valore per il volmue musica è 1
+                                    #la prob dei draghi è al massimo 1(100%)
+                                    #round evita errori di rappresentazione decimale
+                                    settings[i] = round(min(1.0, settings[i] + step), 2)
+                                else:
+                                    #per il resto, non ci sono massimi
+                                    #round evita errori di rappresentazione decimale
+                                    settings[i] = round(settings[i] + step, 2)
                 
-                    
+                            pygame.mixer.music.set_volume(settings[19])
                             i += 1
                             
                     
@@ -811,7 +846,7 @@ def main() -> None:
         # ================== INIT VARIABILI DI GIOCO ==================
         wave_state   = "WAVE_SPAWN"
         current_wave = 1
-        spawn_queue  = build_spawn_queue(calcola_orda(current_wave, settings[17]), settings[13], settings[10], settings[15], settings[12])
+        spawn_queue  = build_spawn_queue(calcola_orda(current_wave, sets=settings), settings[13], settings[10], settings[15], settings[12])
         spawn_timer  = 0
         pause_timer  = 0
 
@@ -974,7 +1009,7 @@ def main() -> None:
                     pause_timer += dt
                     if pause_timer >= settings[16]:
                         current_wave += 1
-                        spawn_queue  = build_spawn_queue(calcola_orda(current_wave, settings[17]), settings[13], settings[10], settings[15], settings[12])
+                        spawn_queue  = build_spawn_queue(calcola_orda(current_wave, sets=settings), settings[13], settings[10], settings[15], settings[12])
                         spawn_timer  = 0
                         wave_state   = "WAVE_SPAWN"
 
@@ -1053,7 +1088,8 @@ def main() -> None:
                     if e[3] == 'slime':
                         img = frames_slime[int(e[6]) % 4]
                     else:
-                        if e[0] < SCREEN_W//2:
+                        ecx_drag = e[0] + e[4] / 2   # centro X del drago corrente
+                        if ecx_drag < shrine_rect.centerx:
                             img = frames_dragon_right[int(e[6]) % 4]
                         else:
                             img = frames_dragon_left[int(e[6]) % 4]
@@ -1226,5 +1262,3 @@ def main() -> None:
 # --- AVVIO ---
 if __name__ == "__main__":
     main()
-
-
