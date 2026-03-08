@@ -34,9 +34,11 @@ def load_frames(sheet, ROWS, COLS, FRAME_SIZE_W, FRAME_SIZE_H=None):
 def rescale_frames(lista_frames, fattore):
     """
     Riscala tutti i frame di una lista in base a un fattore moltiplicativo.
+
     Args:
         lista_frames: Lista di superfici pygame da riscalare.
         fattore:      Fattore di scala (es. 2 = doppia dimensione, 0.5 = metà dimensione).
+
     Returns:
         Nuova lista di superfici pygame riscalate.
     """
@@ -102,14 +104,14 @@ def make_knife_surface(angle_rad, KNIFE_LENGTH, KNIFE_WIDTH):
     return surf
 
 # --- SISTEMA ORDE ---
-def calcola_orda(wave_num):
-    totale      = 4 + (wave_num - 1) * 2
+def calcola_orda(wave_num, coefficiente_dif):
+    totale      = int(4 + (wave_num - 1) * coefficiente_dif)
     prob_dragon = min(0.1 + (wave_num - 1) * 0.1, 0.7)
-    hp_mult     = 1.0 + (wave_num - 1) * 0.2
+    hp_mult     = 1.0 + (wave_num - 1) * 0.1 * coefficiente_dif
     params = [totale, prob_dragon, hp_mult]
     return params #parametri per ogni orda, aumentati mano a mano che le ordine aumentano
 
-def build_spawn_queue(params):
+def build_spawn_queue(params, hp_slime, hp_dragon, speed_slime, speed_dragon):
     """
     Costruisce una coda di nemici da spawnare in base ai parametri dell'ondata.
 
@@ -125,20 +127,20 @@ def build_spawn_queue(params):
     queue = [] # lista che conterrà tutti i nemici che appariranno
     for coso in range(params[0]): # Ripete per ogni nemico da generare
         #Genera un numero casuale tra 0 e 1 e lo confronta con la probabilità drago
-        # se il numero è minore della probabilità allora spawn di un drago, altrimenti uno slime
+        # se il numero è minore della probabilità spawn di un drago, altrimenti uno slime
         if random.random() < params[1]:
             e_type = 'dragon'
         else:
             e_type = 'slime'
 
         if e_type == 'slime':
-            hp     = int(30 * params[2])
-            espeed = 2.0
+            hp     = int(hp_slime * params[2])
+            espeed = speed_slime
             e_w    = 80
             e_h    = 80
         else:
-            hp     = int(50 * params[2])
-            espeed = 1.2
+            hp     = int(hp_dragon * params[2])
+            espeed = speed_dragon
             e_w    = 160
             e_h    = 160
 
@@ -183,66 +185,131 @@ def spawn_one(entry, enemies, SCREEN_W, SCREEN_H):
 dirs = PlatformDirs("CrimsonGuard", ensure_exists=True)  
 CLASSIFICA_FILE = dirs.user_data_path / "classifica.txt"
 
-def salva_partita(nickname, wave, nemici, durata_sec, coltelli):
+def chiave_modalita(settings):
+    """Crea per ogni set di parametri di gioco una chiave,
+       sequenza di riconoscimento."""
+    parti = []
+    for v in settings:
+        parti.append(str(round(v, 2)))
+    return "-".join(parti)
+
+
+
+def salva_partita(nickname, wave, nemici, durata_sec, coltelli, settings):
     """Aggiunge una riga al file classifica.txt"""
     data = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
     minuti = int(durata_sec // 60)
     secondi = int(durata_sec % 60)
     nickname = nickname[:12]
     riga = f"{data} | {nickname:<3} | Wave: {wave:>3} | Nemici: {nemici:>4} | Durata: {minuti:02d}:{secondi:02d} | Coltelli: {coltelli:>4}\n"
-    f = open(CLASSIFICA_FILE, "a", encoding="utf-8") 
-    f.write(riga)
+    chiave  = chiave_modalita(settings)
+    intestazione = f"[MODALITA:{chiave}]\n"
+    
+    # leggo tutto il file esistente
+    if os.path.exists(CLASSIFICA_FILE):
+        f = open(CLASSIFICA_FILE, "r", encoding="utf-8")
+        contenuto = f.readlines()
+        f.close()
+    else:
+        contenuto = []
+    
+    # cerco se la modalità esiste già
+    trovata = False
+    nuove_righe = []
+    i = 0
+    while i < len(contenuto):
+        nuove_righe.append(contenuto[i])
+        if contenuto[i] == intestazione:
+            trovata = True
+            # aggiungo la riga subito dopo l'intestazione, prima della prossima modalità
+            i += 1
+            while i < len(contenuto) and not contenuto[i].startswith("[MODALITA:"):
+                nuove_righe.append(contenuto[i])
+                i += 1
+            nuove_righe.append(riga)
+            continue
+        i += 1
+
+    # se la modalità non esiste, la aggiungo in fondo
+    if not trovata:
+        nuove_righe.append(intestazione)
+        nuove_righe.append(riga)
+    
+    
+    f = open(CLASSIFICA_FILE, "w", encoding="utf-8") 
+    f.writelines(nuove_righe)
     f.close()
     
-def carica_classifica(max_righe=8):
+def carica_classifica(max_righe=8, sets=None):
     """Legge le ultime max_righe dal file classifica"""
     if not os.path.exists(CLASSIFICA_FILE):
         return []
     f = open(CLASSIFICA_FILE, "r", encoding="utf-8")
-    righe = f.readlines()
+    contenuto = f.readlines()
     f.close()
-    ultime = righe[-max_righe:]
-    risultato = []
-    for r in ultime:
-        risultato.append(r.rstrip("\n"))
-    return risultato
     
-def carica_top_classifica(max_righe=8):
+    if sets is None:
+        # fallback: prende tutte le righe non-intestazione
+        righe = []
+        for r in contenuto:
+            if not r.startswith("[MODALITA:"):
+                righe.append(r.rstrip("\n"))
+        return righe[-max_righe:]
+    
+    #se prosegue, vuol dire ci sono dei settings
+    chiave      = chiave_modalita(sets)
+    intestazione = f"[MODALITA:{chiave}]\n"
+
+    # trovo il blocco della modalità corrente
+    righe_modalita = []
+    dentro = False
+    for r in contenuto:
+        if r == intestazione:
+            dentro = True
+            continue
+        if r.startswith("[MODALITA:") and dentro:
+            break
+        
+        #r.strip() è un controllo per la riga non vuota
+        if dentro and r.strip():
+            righe_modalita.append(r.rstrip("\n"))
+
+    if max_righe is None:
+            return righe_modalita
+    return righe_modalita[-max_righe:]
+    
+    
+def carica_top_classifica(max_righe=8, sets=None):
     """Legge tutte le righe, le ordina per wave decrescente e restituisce le migliori max_righe."""
-    if not os.path.exists(CLASSIFICA_FILE):
+    righe = carica_classifica(max_righe=None, sets=sets)
+    if not righe:
         return []
-    f = open(CLASSIFICA_FILE, "r", encoding="utf-8")
-    righe = f.readlines()
-    f.close()
+    
+    
     # estraggo il numero di wave da ogni riga (formato: "... | Wave: NNN | ...")
     def estrai_orda(riga):
         parte_wave = riga.split("|")[2]
         numero = parte_wave.split(":")[1]
         return numero    
-        
-    righe_pulite = []
-    for r in righe:
-        #tolgo l'acapo dalle righe del file
-        righe_pulite.append(r.rstrip("\n"))
     
     #key è il parametro(numero di orda) su cui mi baso per l'ordine crescente
     #con reverse inverto la lista (ordine decrescente)
-    righe_pulite.sort(key=estrai_orda, reverse=True)
-    
-    
-    #se il file ha troppe poche righe, le ritorno tutte
-    if len(righe_pulite) <= 8:
-        return righe_pulite
-    
-    #prendo le prime della lista(le migliori)
+    righe.sort(key=estrai_orda, reverse=True)
+
+    if len(righe) <= max_righe:
+        return righe
+
     migliori = []
     for pos in range(max_righe):
-        migliori.append(righe_pulite[pos])
+        migliori.append(righe[pos])
+    return migliori
     
-        return migliori_8
+    
+       
+    
 
 def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H,
-                       classifica, nickname="", mostra_top=False):
+                       classifica, nickname="", mostra_top=False, GameEnd = True):
     """Disegna la schermata classifica. Usata sia dal game over che dalla schermata iniziale.
        Restituisce il rect del pulsante switch per gestire i click nel loop chiamante."""
     cx = SCREEN_W // 2
@@ -261,21 +328,12 @@ def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCR
 
     i = 0
     for riga in classifica:
-
-        if nickname and nickname.strip() in riga:
-            colore = (255, 255, 100)
-        else:
-            colore = (200, 200, 200)
-
+        colore = (255, 255, 100) if nickname and nickname.strip() in riga else (200, 200, 200)
         s = font_small.render(riga, True, colore)
-        x_pos = cx - 300
-        y_pos = 165 + i * 34
-
-        screen.blit(s, (x_pos, y_pos))
-
+        screen.blit(s, (cx - 300, 165 + i * 34))
         i += 1
 
-    # pulsante switch tipo di classifica
+    # pulsante switch
     if mostra_top:
         btn_label = font_small.render("[ Ultime 8 ]", True, (255, 220, 60))
     else:
@@ -284,7 +342,15 @@ def disegna_classifica(screen, font_wave, font_health, font_small, SCREEN_W, SCR
     pygame.draw.rect(screen, (60, 60, 90), switch_rect, border_radius=5)
     pygame.draw.rect(screen, (180, 180, 100), switch_rect, 1, border_radius=5)
     screen.blit(btn_label, (switch_rect.x + 8, switch_rect.y + 5))
-
+    
+    if GameEnd:
+        hint = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
+                
+    else:
+        hint = font_small.render("ESC per chiudere", True, (160, 160, 160))
+        
+    screen.blit(hint, (cx - hint.get_width()//2, SCREEN_H - 50))
+    
     return switch_rect
 
 
@@ -300,6 +366,10 @@ def disegna_istruzioni(screen, font_wave, font_health, font_small, SCREEN_W, SCR
         ("Uccidi i mostri prima che raggiungano il tempio al centro della mappa.", (220, 220, 180)),
         ("Quando i mostri sono vicini al tempio lo attaccano, riducendone gli HP.", (220, 220, 180)),
         ("Se gli HP del tempio arrivano a zero: GAME OVER.",                        (220, 220, 180)),
+        ("",                   (255, 255, 255)),
+        ("ORDE",          (255, 180, 60)),
+        ("Man mano che uccidi nemici, le orde si fanno sempre più numerose.", (220, 220, 180)),
+        ("Inoltre, più vai avanti con le orde, più i mostri saranno forti e resistenti.", (220, 220, 180)),
         ("",                   (255, 255, 255)),
         ("MOVIMENTO",          (255, 180, 60)),
         ("WASD  /  Frecce direzionali:   corri sulla mappa",                    (220, 220, 180)),
@@ -331,13 +401,77 @@ def disegna_istruzioni(screen, font_wave, font_health, font_small, SCREEN_W, SCR
     screen.blit(hint, (cx - hint.get_width()//2, SCREEN_H - 50))
 
 
+def disegna_settings(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H, icon_plus, icon_minus, settings):
+    """Disegna la schermata settings con slider/valori modificabili."""
+    cx = SCREEN_W // 2
+
+    titolo = font_wave.render("IMPOSTAZIONI", True, (255, 220, 60))
+    screen.blit(titolo, (cx - titolo.get_width()//2, 30))
+
+    voci = [
+        "Velocità camminata",
+        "Velocità corsa",
+        "Velocità dei coltelli",
+        "Danno coltello",
+        "Portata dei coltelli",
+        "Danno orb",
+        "N° orb",
+        "Raggio orbite delle orb",
+        "Velocità orb",
+        "Hp del tempio",
+        "Vita draghi",
+        "Danno draghi sul tempio",                          
+        "Velocità draghi",
+        "Vita slime",
+        "Danno slime sul tempio",                                   
+        "Velocità slime",                                    
+        "Pausa tra orde (ms)",
+        "Velocità incremento difficoltà"
+    ]
+    
+    
+    # colonna sinistra: indici 0-8, colonna destra: indici 9-17
+    col_x = [cx - 580, cx + 20]   # x di partenza testo per ogni colonna
+    btn_x = [cx - 130, cx + 470]  # x di partenza pulsanti per ogni colonna
+
+    btn_rects = [None] * 18
+    y_start = 110
+    y_step  = 52
+
+    for i in range(18):
+        colonna  = 0 if i < 9 else 1
+        riga     = i if i < 9 else i - 9
+        y        = y_start + riga * y_step
+
+        valore = settings[i]
+        testo  = font_small.render(f"{voci[i]}:  {valore}", True, (220, 220, 180))
+        screen.blit(testo, (col_x[colonna], y))
+
+        r_minus = pygame.Rect(btn_x[colonna],      y, 32, 28)
+        r_plus  = pygame.Rect(btn_x[colonna] + 36, y, 32, 28)
+
+        for r in [r_minus, r_plus]:
+            pygame.draw.rect(screen, (70, 70, 100), r, border_radius=5)
+            pygame.draw.rect(screen, (180, 180, 220), r, 1, border_radius=5)
+        screen.blit(icon_minus, (r_minus.x + 0, r_minus.y - 2))
+        screen.blit(icon_plus,  (r_plus.x  + 0, r_plus.y  - 2))
+
+        btn_rects[i] = (r_minus, r_plus)
+
+    # linea divisoria verticale tra le due colonne
+    pygame.draw.line(screen, (100, 100, 140), (cx - 10, 100), (cx - 10, SCREEN_H - 60), 1)
+
+    hint = font_small.render("ESC per chiudere", True, (160, 160, 160))
+    screen.blit(hint, (cx - hint.get_width()//2, SCREEN_H - 40))
+
+    return btn_rects
+    
 #---------------------------------------------------------------------------------------#
 #funzione run del gioco
 
 def main() -> None:
     pygame.init()
-        
-    # ===================== AGGIUNTA AUDIO =====================
+        # ===================== AGGIUNTA AUDIO =====================
     pygame.mixer.init()
         
     MUSICA_MENU  = "materiali\danzadellelame.mp3"
@@ -368,13 +502,24 @@ def main() -> None:
     icon_img = pygame.transform.scale(icon_raw, (48, 48))
     CLASSIFICA_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 80, 60, 60)
 
+    # carico le icone + e - dallo sheet
+    icon_plus_raw  = ui_sheet.subsurface(pygame.Rect(0 * icon_size, 5 * icon_size, icon_size, icon_size))
+    icon_minus_raw = ui_sheet.subsurface(pygame.Rect(1 * icon_size, 5 * icon_size, icon_size, icon_size))
+    icon_plus  = pygame.transform.scale(icon_plus_raw,  (32, 32))
+    icon_minus = pygame.transform.scale(icon_minus_raw, (32, 32))
 
-    #icona per le istruzioni (riga 5, colonna 4)
+    #icona punto interrogativo per le istruzioni (riga 5, colonna 4)
     icon_raw_info = ui_sheet.subsurface(pygame.Rect(4 * icon_size, 5 * icon_size, icon_size, icon_size))
     icon_img_info = pygame.transform.scale(icon_raw_info, (48, 48))
     INFO_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 150, 60, 60)
-
-
+    
+    #icona per i settings
+    icon_raw_settings = ui_sheet.subsurface(pygame.Rect(3 * icon_size, 2 * icon_size, icon_size, icon_size))
+    icon_img_settings = pygame.transform.scale(icon_raw_settings, (48, 48))
+    SETTINGS_BTN_RECT = pygame.Rect(SCREEN_W - 80, SCREEN_H - 220, 60, 60)  # sopra il pulsante info
+    
+    
+    
     # --- COSTANTI PERSONAGGIO ---
     FRAME_SIZE_samurai = 256
     ANIM_SPEED  = 0.15
@@ -401,9 +546,55 @@ def main() -> None:
     PAUSE_DURATION = 4000
     SPAWN_INTERVAL = 400
     
-    # --- COSTANTI IN GIOCO ---
-    HIT_FLASH_DURATION = 8      #animazione di un nemico colpito, lampeggia diventando rosso per 0.13 secondi = 8frames/60
+    # --- COSTANTI MOSTRI ---
+    SLIME_HP = 30
+    DRAGON_HP = 50
+    SLIME_SPEED = 2.0
+    DRAGON_SPEED = 1.2
+    SLIME_DAMAGE = 0.05
+    DRAGON_DAMAGE = 0.05
+    
+    # -- costante shrine ---
+    shrine_max_hp = 100.0
+    
+    
+    # --- durata danno in game ---
+    HIT_FLASH_DURATION = 8
+    
+    # --- coefficiente difficoltà crescente del gioco ---
+    COEFF_DIF = 2
 
+    
+    # --- SETTINGS MODIFICABILI DA UI ---
+    settings = [
+            SPEED_WALK,
+            SPEED_RUN,
+            KNIFE_SPEED,
+            KNIFE_DAMAGE,
+            KNIFE_MAX_RANGE,
+            ORB_DAMAGE,
+            ORB_NUM,
+            ORB_ORBIT_RADIUS,
+            ORB_SPEED,
+            shrine_max_hp,
+            DRAGON_HP,
+            DRAGON_DAMAGE,
+            DRAGON_SPEED,
+            SLIME_HP,
+            SLIME_DAMAGE,
+            SLIME_SPEED,
+            PAUSE_DURATION,
+            COEFF_DIF,
+    ]
+    
+
+
+    
+    
+    
+    
+    
+    
     # --- CARICAMENTO ASSET (una volta sola) ---
     backstage = pygame.image.load("materiali\StageRettangolare.png").convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
@@ -412,24 +603,21 @@ def main() -> None:
     shrine_75 = pygame.transform.scale(shrine_75, (int(shrine_75.get_width()*0.5), int(shrine_75.get_height()*0.5)))
     shrine_rect = shrine_75.get_rect(center = (SCREEN_W//2, SCREEN_H//2))
 
-    shrine_100 = load_shrine_state("materiali\Tempio1nosfondo.png", shrine_rect) # immagine del tempio con 100 HP già ridimensionata correttamente grazie alla funzione
+    shrine_100 = load_shrine_state("materiali\Tempio1nosfondo.png", shrine_rect)
     shrine_50  = load_shrine_state("materiali\Tempio50hpRifilato.png", shrine_rect)
     shrine_25  = load_shrine_state("materiali\Tempio25hpRifilato.png", shrine_rect)
     shrine_0   = load_shrine_state("materiali\Tempio0hpRifilato.png", shrine_rect)
 
-    def get_shrine_img(hp):
-        """
-        in base all'hp ritorna le immagini del tempio in ase al danneggiamento
-        """
-        if hp > 75:
+    def get_shrine_img(hp_cur, max_hp):
+        percentuale = (hp_cur / max_hp) * 100
+        if   percentuale > 75:
             return shrine_100
-        elif hp > 50:
+        elif percentuale > 50:
             return shrine_75
-        elif hp > 25:
+        elif percentuale > 25:
             return shrine_50
-        elif hp > 0:
+        elif percentuale > 0:
             return shrine_25
-
         return shrine_0
 
     # --- CARICAMENTO SAMURAI ---
@@ -465,9 +653,8 @@ def main() -> None:
     dragon_sheet        = pygame.image.load("materiali\Baby_Dragon_2D.png").convert_alpha()
     frames_dragon_left  = rescale_frames(load_frames(dragon_sheet, 2, 2, 64, 64), 2.5)
     frames_dragon_right = [pygame.transform.flip(f, True, False) for f in frames_dragon_left]
-    
-    #vari tipi di font in base alla grandezza
-    font_health = pygame.font.Font(None, 36) 
+
+    font_health = pygame.font.Font(None, 36)
     font_wave   = pygame.font.Font(None, 72)
     font_small  = pygame.font.Font(None, 30)
 
@@ -475,22 +662,23 @@ def main() -> None:
     # LOOP ESTERNO: schermata iniziale → partita → game over → torna all'inizio
     # ==================================================================================
     while True:
+            
                 # ===================== AGGIUNTA AUDIO =====================
     # Avvia la musica del menu solo se non stava già suonando
         if musica_corrente != MUSICA_MENU:
             musica_corrente = MUSICA_MENU
             pygame.mixer.music.load(MUSICA_MENU)
             pygame.mixer.music.play(-1)   # -1 = loop infinito, ad esempio con 0 si ripete una volta
-        
         # ================== SCHERMATA INIZIALE ==================
-        in_start_screen = True               # in_start_screen: indica se sei nella schermata iniziale; il ciclo while continua finché è True.                  
-        mostra_classifica_start = False      # mostra_classifica_start: True se la classifica deve essere mostrata.
-        mostra_top_start = False            # mostra_top_start: True se vuoi mostrare il top della classifica invece della classifica completa.
-        switch_rect_start = None            # switch_rect_start: è un rettangolo cliccabile che permette di alternare tra classifica normale e top.
-        mostra_istruzioni = False            # mostra_istruzioni: True se vuoi mostrare le istruzioni di gioco.
+        in_start_screen = True
+        mostra_classifica_start = False
+        mostra_top_start = False
+        switch_rect_start = None
+        mostra_istruzioni = False
+        mostra_settings = False
+        settings_btn_rects = []
         while in_start_screen:
             clock.tick(60)
-                
             
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -501,26 +689,65 @@ def main() -> None:
                         if mostra_classifica_start:
                             mostra_classifica_start = False
                         elif mostra_istruzioni:
-                            mostra_istruzioni = False                        
+                            mostra_istruzioni = False
+                        elif mostra_settings:
+                            mostra_settings = False
                         else:
                             pygame.quit()
                             sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if not mostra_classifica_start and not mostra_istruzioni and START_BUTTON_RECT.collidepoint(event.pos):
+                    #mi assicuro che nessun menù sia aperto per l'avvio del gioco
+                    if not mostra_classifica_start and not mostra_istruzioni and not mostra_settings and START_BUTTON_RECT.collidepoint(event.pos):
                         in_start_screen = False
                     if CLASSIFICA_BTN_RECT.collidepoint(event.pos):
                         mostra_classifica_start = not mostra_classifica_start
                         mostra_istruzioni = False
+                        mostra_settings = False
                     if INFO_BTN_RECT.collidepoint(event.pos):
                         mostra_istruzioni = not mostra_istruzioni
                         mostra_classifica_start = False
-                    if mostra_classifica_start and event.type == pygame.MOUSEBUTTONDOWN:
+                        mostra_settings = False
+                    if SETTINGS_BTN_RECT.collidepoint(event.pos):
+                        mostra_settings = not mostra_settings
+                        mostra_classifica_start = False
+                        mostra_istruzioni = False
+                    
+                    if mostra_settings and settings_btn_rects:
+                        i = 0
+                        for (r_minus, r_plus) in settings_btn_rects:
+                            #step diverso per pausa tra le orde
+                            if i == 16 :
+                                step = 100
+                            
+                            #step diverso per velocità mostri e velocità incremento rode
+                            elif i == 8 or i == 12 or i == 15 or i == 17:
+                                step = 0.1
+                            
+                            #step diverso per danni mostri
+                            elif i == 11 or i == 14:
+                                step = 0.01
+                            
+                            else:
+                                step = 1
+                                
+                            if r_minus.collidepoint(event.pos):
+                                #round evita errori di rappresentazione decimale
+                                settings[i] = round(max(step, settings[i] - step), 2)
+                            if r_plus.collidepoint(event.pos):
+                                #round evita errori di rappresentazione decimale
+                                settings[i] = round(settings[i] + step, 2)
+                
+                    
+                            i += 1
+                            
+                    
+                    if mostra_classifica_start:
                         if switch_rect_start and switch_rect_start.collidepoint(event.pos):
                             mostra_top_start = not mostra_top_start
                             if mostra_top_start:
-                                classifica_dati = carica_top_classifica()
+                                classifica_dati = carica_top_classifica(sets=settings)
                             else:
-                                classifica_dati = carica_classifica()
+                                classifica_dati = carica_classifica(sets=settings)
                                 
             screen.blit(start_screen_img, (0, 0))
 
@@ -529,17 +756,27 @@ def main() -> None:
                 overlay.fill((0, 0, 0, 180))
                 screen.blit(overlay, (0, 0))
                 if mostra_top_start:
-                    classifica_dati = carica_top_classifica()
+                    classifica_dati = carica_top_classifica(sets=settings)
                 else:
-                    classifica_dati = carica_classifica()
+                    classifica_dati = carica_classifica(sets=settings)
                 switch_rect_start = disegna_classifica(screen, font_wave, font_health, font_small,
-                                   SCREEN_W, SCREEN_H, classifica_dati, mostra_top=mostra_top_start)
+                                   SCREEN_W, SCREEN_H, classifica_dati, mostra_top=mostra_top_start, GameEnd=False)
             
             if mostra_istruzioni:
                 overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
                 overlay.fill((0, 0, 0, 180))
                 screen.blit(overlay, (0, 0))
                 disegna_istruzioni(screen, font_wave, font_health, font_small, SCREEN_W, SCREEN_H)
+            
+            
+            if mostra_settings:
+                overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 180))
+                screen.blit(overlay, (0, 0))
+                settings_btn_rects = disegna_settings(screen, font_wave, font_health, font_small,
+                                               SCREEN_W, SCREEN_H, icon_plus, icon_minus, settings)
+            
+            
             
             # --- disegno pulsante classifica ---
             btn_color = (80, 80, 120) if CLASSIFICA_BTN_RECT.collidepoint(pygame.mouse.get_pos()) else (50, 50, 90)
@@ -554,28 +791,32 @@ def main() -> None:
             pygame.draw.rect(screen, (180, 180, 220), INFO_BTN_RECT, 2, border_radius=8)
             screen.blit(icon_img_info, (INFO_BTN_RECT.x + 6, INFO_BTN_RECT.y + 6))
             
-
+            
+            # --- disegno pulsante settings ---
+            btn_color_set = (80, 80, 120) if SETTINGS_BTN_RECT.collidepoint(pygame.mouse.get_pos()) else (50, 50, 90)
+            pygame.draw.rect(screen, btn_color_set, SETTINGS_BTN_RECT, border_radius=8)
+            pygame.draw.rect(screen, (180, 180, 220), SETTINGS_BTN_RECT, 2, border_radius=8)
+            screen.blit(icon_img_settings, (SETTINGS_BTN_RECT.x + 6, SETTINGS_BTN_RECT.y + 6))
+            
+            
             pygame.display.flip()
-                # ===================== AGGIUNTA AUDIO =====================
-        # Passaggio menu → gioco: carica e avvia la musica di gioco
-
+        # Passaggio menu → gioco: carica e avvia la musica di gioco    
         musica_corrente = MUSICA_GIOCO
         print("Carico:", MUSICA_GIOCO)
         pygame.mixer.music.load(MUSICA_GIOCO)
         print("Loaded OK")
         pygame.mixer.music.play(-1)
         print("Playing:", pygame.mixer.music.get_busy())
-        # ==========================================================
         
         # ================== INIT VARIABILI DI GIOCO ==================
-        # statistiche e stati prima di inizare il gioco
         wave_state   = "WAVE_SPAWN"
         current_wave = 1
-        spawn_queue  = build_spawn_queue(calcola_orda(current_wave))
+        spawn_queue  = build_spawn_queue(calcola_orda(current_wave, settings[17]), settings[13], settings[10], settings[15], settings[12])
         spawn_timer  = 0
         pause_timer  = 0
 
-        shrine_max_hp, shrine_current_hp = 100.0, 100.0
+        
+        shrine_current_hp = settings[9]
         px, py         = SCREEN_W // 2, SCREEN_H // 2
         side_pg        = 'R'
         frame_index    = 0.0
@@ -608,14 +849,15 @@ def main() -> None:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
- 
+
             if not game_over:
                 keys       = pygame.key.get_pressed()
                 is_walking = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-                speed      = SPEED_WALK if is_walking else SPEED_RUN
+                #settings[0] è speed_walk, settings[1] è speed_run
+                speed      = settings[0] if is_walking else settings[1]
                 moved      = False
 
-                               # --- MOVIMENTO PERSONAGGIO ---
+                # --- MOVIMENTO ---
                 if keys[pygame.K_w] or keys[pygame.K_UP]:    #se si preme il tasto w o la freccia direzionale verso l'alto
                     py -= speed                           #asse y diminuisce andando verso l'alto in python
                     if is_walking:      #se viene utilizzata quella combinazione di tasti per camminare allora:
@@ -646,13 +888,12 @@ def main() -> None:
                     else:
                         current_frames = frames_run_right  #altrimenti corre normalmente verso destra
                     moved = True
-                    
-                if not moved: #se non si muove, sta fermo nella posizione del movimento precedente
+
+                if not moved:
                     current_frames = frames_idle_right if side_pg == 'R' else frames_idle_left
-                    
+
                 anim_speed = ANIM_SPEED if is_walking else ANIM_SPEED * 1.5
                 frame_index += anim_speed
-                
                 if frame_index >= len(current_frames):
                     frame_index = 0
 
@@ -671,8 +912,8 @@ def main() -> None:
                         side_pg = 'L'
                     else:
                         side_pg = 'R'
-                    vx = math.cos(angle) * KNIFE_SPEED
-                    vy = math.sin(angle) * KNIFE_SPEED
+                    vx = math.cos(angle) * settings[2]
+                    vy = math.sin(angle) * settings[2]
                     surf = make_knife_surface(angle, KNIFE_LENGTH, KNIFE_WIDTH)
                     hs   = surf.get_width() // 2
                     knives.append([pg_cx, pg_cy, vx, vy, surf, hs, 0])
@@ -681,21 +922,21 @@ def main() -> None:
                 
                     # --- AGGIORNA ORB ---
                 #calcolo angolazione della orb
-                orb_angle += ORB_SPEED * (dt / 1000.0)
+                orb_angle += settings[8] * (dt / 1000.0)
                 #centro del personaggio
                 pg_cx = px + 64
                 pg_cy = py + 64
                 orb_positions = []
                 
-                for i in range(ORB_NUM):
+                for i in range(settings[6]):
                     #dividiamo il cerchio in tanti angoli congruenti  quante sono le orbe
-                    angs_equi = 2 * math.pi / ORB_NUM
+                    angs_equi = 2 * math.pi / settings[6]
                     #per ogni orb diversa, aggiungo l'angolo congruente all'angolo attuale delle orb
                     #math.cos(angolo): Ci dice quanto dobbiamo spostarci a DESTRA o SINISTRA dal centro, in proporzione
-                    orb_dist_x = math.cos(orb_angle + i * angs_equi) * ORB_ORBIT_RADIUS
+                    orb_dist_x = math.cos(orb_angle + i * angs_equi) * settings[7]
                     #math.sin(angolo): Ci dice quanto dobbiamo spostarci in ALTO o BASSO dal centro, in proporzione
-                    orb_dist_y = math.sin(orb_angle + i * angs_equi) * ORB_ORBIT_RADIUS
-                    #*ORB_ORBIT_RADIUS moltiplica il valore trovato con sin e cos per il raggio, lo allunga
+                    orb_dist_y = math.sin(orb_angle + i * angs_equi) * settings[7]
+                    #*settings[7](raggio dell'orbita) moltiplica il valore trovato con sin e cos per il raggio, lo allunga
                     #aggiungiamo le coordinate rispetto al centro del personaggio, pg_cx e pg_cy
                     orb_positions.append((pg_cx + orb_dist_x, pg_cy + orb_dist_y))
                 
@@ -711,8 +952,8 @@ def main() -> None:
                 for k in knives.copy():
                     k[0] += k[2]
                     k[1] += k[3]
-                    k[6] += KNIFE_SPEED
-                    if k[0] < -60 or k[0] > SCREEN_W+60 or k[1] < -60 or k[1] > SCREEN_H+60 or k[6] >= KNIFE_MAX_RANGE:
+                    k[6] += settings[2]
+                    if k[0] < -60 or k[0] > SCREEN_W+60 or k[1] < -60 or k[1] > SCREEN_H+60 or k[6] >= settings[4]:
                         knives.remove(k)
 
                 # --- MACCHINA A STATI ORDE ---
@@ -731,15 +972,15 @@ def main() -> None:
 
                 elif wave_state == "WAVE_PAUSE":
                     pause_timer += dt
-                    if pause_timer >= PAUSE_DURATION:
+                    if pause_timer >= settings[16]:
                         current_wave += 1
-                        spawn_queue  = build_spawn_queue(calcola_orda(current_wave))
+                        spawn_queue  = build_spawn_queue(calcola_orda(current_wave, settings[17]), settings[13], settings[10], settings[15], settings[12])
                         spawn_timer  = 0
                         wave_state   = "WAVE_SPAWN"
 
                 # --- DISEGNO SFONDO ---
                 screen.blit(backstage, (0, 0))
-                shrine_img = get_shrine_img(shrine_current_hp)
+                shrine_img = get_shrine_img(shrine_current_hp, settings[9])
                 screen.blit(shrine_img, (shrine_rect.x, shrine_rect.y + (shrine_75.get_height() - shrine_img.get_height())))
 
                 # --- LOGICA NEMICI ---
@@ -755,8 +996,11 @@ def main() -> None:
                         enemy[0] += (dx / dist) * enemy[7]
                         enemy[1] += (dy / dist) * enemy[7]
                     else:
-                        shrine_current_hp -= 0.05
-
+                        if enemy[3] == 'slime':
+                            shrine_current_hp -= settings[14]
+                        else:
+                            shrine_current_hp -= settings[11]
+                        
                     enemy[6] += 0.15
                     if enemy[6] >= 4:
                         enemy[6] = 0
@@ -772,7 +1016,7 @@ def main() -> None:
                     if not gia_colpito:
                         for (ox, oy) in orb_positions:
                             if math.hypot(ox - ecx, oy - ecy) < ORB_RADIUS + max(enemy[4], enemy[5]) / 2:
-                                enemy[2] -= ORB_DAMAGE
+                                enemy[2] -= settings[5] #danno orb
                                 enemy[8]  = HIT_FLASH_DURATION
                                 orb_hit_cooldowns.append([eid, ORB_DAMAGE_COOLDOWN])
                                 break
@@ -783,7 +1027,7 @@ def main() -> None:
                     for k in knives.copy():
                         knife_rect = pygame.Rect(k[0]-k[5], k[1]-k[5], k[5]*2, k[5]*2)
                         if enemy_rect.colliderect(knife_rect):
-                            enemy[2] -= KNIFE_DAMAGE
+                            enemy[2] -= settings[3] #danno coltelli
                             enemy[8]  = HIT_FLASH_DURATION
                             if k in knives:
                                 knives.remove(k)
@@ -799,9 +1043,6 @@ def main() -> None:
                     running   = False
                     game_over = True
                     durata_sec = (pygame.time.get_ticks() - tempo_inizio) / 1000.0
-                                    
-                    pygame.mixer.music.stop()
-                    musica_corrente = ""
 
                 # --- DISEGNO COLTELLI ---
                 for k in knives:
@@ -836,21 +1077,21 @@ def main() -> None:
                     pygame.draw.circle(screen, (255, 220, 0),   (int(ox), int(oy)), ORB_RADIUS)
                     pygame.draw.circle(screen, (255, 255, 210), (int(ox)-3, int(oy)-3), ORB_RADIUS//3)
 
-            # scritta degli hp del tempio e tempio selezionato
+            # --- UI ---
             pygame.draw.rect(screen, (50, 50, 50),  (SCREEN_W//2-150, 30, 300, 20))
-            pygame.draw.rect(screen, (0, 200, 255), (SCREEN_W//2-150, 30, (shrine_current_hp/shrine_max_hp)*300, 20))
+            pygame.draw.rect(screen, (0, 200, 255), (SCREEN_W//2-150, 30, (shrine_current_hp/settings[9])*300, 20))
             txt = font_health.render(f"SHRINE HP: {int(shrine_current_hp)}", True, (255,255,255))
             screen.blit(txt, (SCREEN_W//2 - txt.get_width()//2, 55))
 
             wave_txt = font_small.render(f"WAVE  {current_wave}", True, (255, 220, 80))
             screen.blit(wave_txt, (20, 20))
 
-            if wave_state == "WAVE_ACTIVE":     #se l'orda è cominciata, si scrivono i nemici presenti
+            if wave_state == "WAVE_ACTIVE":
                 rem_txt = font_small.render(f"Nemici: {len(enemies)}", True, (220, 220, 220))
                 screen.blit(rem_txt, (20, 48))
 
-            if wave_state == "WAVE_PAUSE":   #se l'orda di non è ancora cominciata, allora abbiamo il timer
-                seconds_left = max(1, int((PAUSE_DURATION - pause_timer) / 1000) + 1)
+            if wave_state == "WAVE_PAUSE":
+                seconds_left = max(1, int((settings[16] - pause_timer) / 1000) + 1)
                 ann = font_wave.render(f"WAVE  {current_wave + 1}  in  {seconds_left}...", True, (255, 230, 60))
                 screen.blit(ann, (SCREEN_W//2 - ann.get_width()//2, SCREEN_H//2 - 40))
 
@@ -874,13 +1115,16 @@ def main() -> None:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE: 
+                        pygame.quit()
+                        sys.exit()
                     if not inserimento_ok:
                         # --- fase di digitazione nickname ---
                         if event.key == pygame.K_RETURN and nickname.strip():
                             # salva e carica classifica
                             salva_partita(nickname.strip(), current_wave,
-                                          nemici_uccisi, durata_sec, coltelli_sparati)
-                            classifica     = carica_classifica()
+                                          nemici_uccisi, durata_sec, coltelli_sparati, settings)
+                            classifica     = carica_classifica(sets=settings)
                             inserimento_ok = True
                         elif event.key == pygame.K_BACKSPACE:
                             # --- cancella in inserimento ---
@@ -900,14 +1144,14 @@ def main() -> None:
                     if switch_rect_go and switch_rect_go.collidepoint(event.pos):
                         mostra_top_gameover = not mostra_top_gameover
                         if mostra_top_gameover:
-                            classifica = carica_top_classifica()
+                            classifica = carica_top_classifica(sets=settings)
                         else:
-                            classifica = carica_classifica()
+                            classifica = carica_classifica(sets=settings)
                 
                 
             # --- DISEGNO SFONDO ---
             screen.blit(backstage, (0, 0))
-            shrine_img = get_shrine_img(shrine_current_hp)
+            shrine_img = get_shrine_img(shrine_current_hp, settings[9])
             screen.blit(shrine_img, (shrine_rect.x, shrine_rect.y + (shrine_75.get_height() - shrine_img.get_height())))
             screen.blit(current_frames[int(frame_index) % len(current_frames)], (px, py))
 
@@ -951,7 +1195,7 @@ def main() -> None:
             else:
                 # --- SCHERMATA CLASSIFICA ---
                 switch_rect_go = disegna_classifica(screen, font_wave, font_health, font_small,
-                                   SCREEN_W, SCREEN_H, classifica, nickname, mostra_top_gameover)
+                                   SCREEN_W, SCREEN_H, classifica, nickname, mostra_top_gameover, GameEnd=True)
                 
                 
                 # statistiche ultima partita (colonna sinistra)
@@ -972,15 +1216,15 @@ def main() -> None:
                     screen.blit(s, (70, 165 + i * 32))
                     i += 1
 
-                hint2 = font_small.render("SPAZIO per ricominciare  |  ESC per uscire", True, (160, 160, 160))
-                screen.blit(hint2, (SCREEN_W//2 - hint2.get_width()//2, SCREEN_H - 50))
+                
 
             
             pygame.display.flip()
 
         # game_over == False → il while True esterno riparte dalla schermata iniziale
 
-
 # --- AVVIO ---
 if __name__ == "__main__":
     main()
+
+
