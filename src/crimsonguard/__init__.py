@@ -8,6 +8,7 @@ from importlib.resources import files
 import pygame
 from platformdirs import PlatformDirs
 
+from .resources import get_image, get_sound
 
 # --- FUNZIONI DI SUPPORTO ---
 def load_frames(sheet, ROWS, COLS, FRAME_SIZE_W, FRAME_SIZE_H=None):
@@ -823,8 +824,8 @@ def main() -> None:
     # pygame.mixer gestisce l'audio. init() va chiamato separatamente da pygame.init()
     # perché potrebbe non essere disponibile su tutti i sistemi (es. headless server)
 
-    MUSICA_MENU = files("giocopaolettiamadio") / "materiali" / "danzadellelame.mp3"
-    MUSICA_GIOCO = files("giocopaolettiamadio") / "materiali" / "danzadellelame2.mp3"
+    MUSICA_MENU = get_sound("danzadellelame.mp3")
+    MUSICA_GIOCO = get_sound("danzadellelame2.mp3")
     musica_corrente = ""  # tiene traccia di quale file è caricato
     # la variabile musica_corrente evita di ricaricare e riavviare la traccia audio, si ricarica solo quando cambia l'audio
 
@@ -835,9 +836,7 @@ def main() -> None:
     clock = pygame.time.Clock()  #  per limitare gli FPS e misurare il tempo trascorso
 
     # ================== SCHERMATA INIZIALE (caricata una volta sola) ==================
-    start_screen_img = pygame.image.load(
-        files("giocopaolettiamadio") / "materiali" / "schermataI.png"
-    ).convert_alpha()
+    start_screen_img = pygame.image.load(get_image("schermataI.png")).convert_alpha()
     start_screen_img = pygame.transform.scale(start_screen_img, (SCREEN_W, SCREEN_H))
     # Rettangolo clickable per il pulsante "Start": definisce l'area sensibile al click
     START_BUTTON_RECT = pygame.Rect(522, 600, 300, 90)
@@ -845,9 +844,7 @@ def main() -> None:
     # --- PULSANTE (schermata iniziale) ---
     # r -> raw string -> faccio capire a python che deve interpretare \ in modo letterale
     # Senza la r, Python interpreterebbe \U, \S ecc. come sequenze di escape Unicode
-    ui_sheet = pygame.image.load(
-        files("giocopaolettiamadio") / "materiali" / "UI_grey_buttons_1.png"
-    ).convert_alpha()
+    ui_sheet = pygame.image.load(get_image("UI_grey_buttons_1.png")).convert_alpha()
     # ogni icona è 16x16 pixel nello sheet;
     icon_size = 16
 
@@ -975,15 +972,11 @@ def main() -> None:
 
     # --- CARICAMENTO ASSET (una volta sola) ---
     # Gli asset vengono caricati qui fuori dal loop principale
-    backstage = pygame.image.load(
-        files("giocopaolettiamadio") / "materiali" / "StageRettangolare.png"
-    ).convert_alpha()
+    backstage = pygame.image.load(get_image("StageRettangolare.png")).convert_alpha()
     backstage = pygame.transform.scale(backstage, (SCREEN_W, SCREEN_H))
 
     # shrine_75 viene caricato prima degli altri perché shrine_rect si calcola da esso
-    shrine_75 = pygame.image.load(
-        files("giocopaolettiamadio") / "materiali" / "Tempio75hpRifilato.png"
-    ).convert_alpha()
+    shrine_75 = pygame.image.load(get_image("Tempio75hpRifilato.png")).convert_alpha()
     shrine_75 = pygame.transform.scale(
         shrine_75, (int(shrine_75.get_width() * 0.5), int(shrine_75.get_height() * 0.5))
     )
@@ -992,31 +985,17 @@ def main() -> None:
 
     # load_shrine_state riscala ogni immagine in modo che la larghezza sia identica a shrine_rect.width
     # così tutte le versioni del tempio si sovrappongono 'perfettamente' durante la visualizzazione
-    shrine_100 = load_shrine_state(
-        files("giocopaolettiamadio") / "materiali" / "Tempio1nosfondo.png", shrine_rect
-    )
-    shrine_50 = load_shrine_state(
-        files("giocopaolettiamadio") / "materiali" / "Tempio50hpRifilato.png",
-        shrine_rect,
-    )
-    shrine_25 = load_shrine_state(
-        files("giocopaolettiamadio") / "materiali" / "Tempio25hpRifilato.png",
-        shrine_rect,
-    )
-    shrine_0 = load_shrine_state(
-        files("giocopaolettiamadio") / "materiali" / "Tempio0hpRifilato.png",
-        shrine_rect,
-    )
+    shrine_100 = load_shrine_state(get_image("Tempio1nosfondo.png"), shrine_rect)
+    shrine_50 = load_shrine_state(get_image("Tempio50hpRifilato.png"),shrine_rect)
+    shrine_25 = load_shrine_state(get_image("Tempio25hpRifilato.png"),shrine_rect)
+    shrine_0 = load_shrine_state(get_image("Tempio0hpRifilato.png"), shrine_rect)
 
     lista_shrine = [shrine_100, shrine_75, shrine_50, shrine_25, shrine_0]
 
     # --- CARICAMENTO SAMURAI ---
     # get_samurai_frames carica e riscala al 50% l'intero set di animazione
     # frames per la posizione ferma
-    frames_idle_right = get_samurai_frames(
-        files("giocopaolettiamadio") / "materiali" / "Samurai-idle-v1.png",
-        FRAME_SIZE_samurai,
-    )
+    frames_idle_right = get_samurai_frames(get_image("Samurai-idle-v1.png"), FRAME_SIZE_samurai)
 
     # Per i frame verso sinistra non serve un file separato: si specchiano orizzontalmente quelli verso destra
     frames_idle_left = []
@@ -1027,18 +1006,9 @@ def main() -> None:
         frames_idle_left.append(frame_flippato)
 
     # frames per la camminata
-    frames_walk_up = get_samurai_frames(
-        files("giocopaolettiamadio") / "materiali" / "SamuraiUpgiusto.png",
-        FRAME_SIZE_samurai,
-    )
-    frames_walk_down = get_samurai_frames(
-        files("giocopaolettiamadio") / "materiali" / "SamuraiDowngiusto.png",
-        FRAME_SIZE_samurai,
-    )
-    frames_walk_right = get_samurai_frames(
-        files("giocopaolettiamadio") / "materiali" / "SamuraiDxgiusto.png",
-        FRAME_SIZE_samurai,
-    )
+    frames_walk_up = get_samurai_frames(get_image("SamuraiUpgiusto.png"), FRAME_SIZE_samurai)
+    frames_walk_down = get_samurai_frames(get_image("SamuraiDowngiusto.png"), FRAME_SIZE_samurai)
+    frames_walk_right = get_samurai_frames(get_image("SamuraiDxgiusto.png"), FRAME_SIZE_samurai)
 
     # Anche per camminata a sinistra: flip orizzontale di camminata a destra
     frames_walk_left = []
@@ -1047,18 +1017,9 @@ def main() -> None:
         frames_walk_left.append(frame_flippato)
 
     # frames per la corsa
-    frames_run_up = get_samurai_frames(
-        files("giocopaolettiamadio") / "materiali" / "SamuraiRunUpgiusto.png",
-        FRAME_SIZE_samurai,
-    )
-    frames_run_down = get_samurai_frames(
-        files("giocopaolettiamadio") / "materiali" / "SamuraiRunDowngiusto.png",
-        FRAME_SIZE_samurai,
-    )
-    frames_run_right = get_samurai_frames(
-        files("giocopaolettiamadio") / "materiali" / "SamuraiRunDxgiusto.png",
-        FRAME_SIZE_samurai,
-    )
+    frames_run_up = get_samurai_frames(get_image("SamuraiRunUpgiusto.png"), FRAME_SIZE_samurai)
+    frames_run_down = get_samurai_frames(get_image("SamuraiRunDowngiusto.png"), FRAME_SIZE_samurai)
+    frames_run_right = get_samurai_frames(get_image("SamuraiRunDxgiusto.png"), FRAME_SIZE_samurai)
 
     # Corsa a sinistra: flip orizzontale di corsa a destra
     frames_run_left = []
@@ -1067,15 +1028,11 @@ def main() -> None:
         frames_run_left.append(frame_flippato)
 
     # --- CARICAMENTO NEMICI ---
-    slime_sheet = pygame.image.load(
-        files("giocopaolettiamadio") / "materiali" / "SlimeSpriteSheet.png"
-    ).convert_alpha()
+    slime_sheet = pygame.image.load(get_image("SlimeSpriteSheet.png")).convert_alpha()
     # Lo slime ha 1 riga e 4 colonne nello spritesheet, frame originali 32x32, scalati 2.5x = 80x80
     frames_slime = rescale_frames(load_frames(slime_sheet, 1, 4, 32, 32), 2.5)
 
-    dragon_sheet = pygame.image.load(
-        files("giocopaolettiamadio") / "materiali" / "Baby_Dragon_2D.png"
-    ).convert_alpha()
+    dragon_sheet = pygame.image.load(get_image("Baby_Dragon_2D.png")).convert_alpha()
     # Il drago ha 2 righe e 2 colonne nello spritesheet, frame 64x64, scalati 2.5x = 160x160
     frames_dragon_left = rescale_frames(load_frames(dragon_sheet, 2, 2, 64, 64), 2.5)
     # Il drago guarda a sinistra per default; per averlo a destra lo rovesciamo
