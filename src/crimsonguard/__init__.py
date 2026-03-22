@@ -1,3 +1,20 @@
+# file di avvio del gioco - presenta tutte le varie funzioni che creano il gioco.
+
+# Modulo di avvio del gico realizzato su Pygame.
+
+# Contiene tutte le funzioni principali:
+#     Caricamento e gestione degli sprite e degli spritesheet (samurai, tempio, coltello)
+#     Loop di gioco con wave di nemici, collisioni e punteggio
+#     Gestione dello stato del tempio (HP e grafica progressiva del danno)
+#     Salvataggio e lettura della classifica con inserimento del nickname
+#     Schermate di avvio, pausa e game over
+
+# License: See LICENSE file in the project root for details.
+
+# Authors: 
+# Leonardo Paoletti <leopaoletti09@gmail.com>
+# Sebastiano Amadio <sebastianoamadio09@gmail.com>
+
 import datetime
 import math
 import os
