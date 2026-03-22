@@ -1,23 +1,43 @@
-# Crimson Guard
+# ⚔️ Crimson Guard
 
-![202603221632 (1)](https://github.com/user-attachments/assets/8fa645e7-ea08-4f12-ac9d-fe467cd67a80)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8fa645e7-ea08-4f12-ac9d-fe467cd67a80" width="600" alt="Crimson Guard Logo" />
+</p>
 
-In questo gioco, impersonerete i panni di un samurai, con il compito di difendere il tempio al centro della mappa da orde di mostri.
-Correte, lanciate coltelli ed utilizzate le orb rotanti intorno a voi per uccidere i nemici, finché il tempio non è distrutto.
-<img width="838" height="478" alt="gameplayscreen" src="https://github.com/user-attachments/assets/df9c25c8-f63d-4d1b-a30e-c131b8572896" />
-Sfidatevi a battere i vostri stessi record, a uccidere più mostri, a lanciare meno coltelli ecc. La classifica vi mostrerà tutta la vostra storia di partite.
-<img width="835" height="478" alt="classificascreen" src="https://github.com/user-attachments/assets/f30140ad-dea5-409a-a024-237dab7ad226" />
-Rendete ogni game unico e irripetibile: personalzizate le impostazioni a vostro piacimento, variando i valori dei vari settings. Puoi giocare solo contro degli slime, oppure avere 20 sfere letali roteanti intorno a te. Divertitevi a sperimentare e a creare gli scenari più bizzarri.
-<img width="838" height="484" alt="impostazioniscreen" src="https://github.com/user-attachments/assets/8950c226-3a66-42b1-a2a0-cf43bf8520f7" />
+In questo gioco, vestirete i panni di un **samurai** con il compito di difendere il tempio centrale da orde di mostri. 
+Correte, lanciate coltelli e sfruttate le orb rotanti per sopravvivere il più a lungo possibile!
 
+---
 
+## 🎮 Gameplay & Caratteristiche
 
+### Difendi il Tempio
+Proteggi il cuore della mappa dall'attacco nemico. Se il tempio viene distrutto, il gioco finisce.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/e17147df-7eeb-4ab0-ac73-1b8cce6b788f" width="500" alt="Gameplay Screen" />
+</p>
 
-## Come iniziare
+### Scala la Classifica
+Sfidate i vostri record: mostri uccisi, precisione nel lancio dei coltelli e tempo di sopravvivenza. La classifica tiene traccia di tutta la tua storia.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/24c2f040-35a5-4a56-999b-2b53a2b7c194" width="500" alt="Classifica Screen" />
+</p>
 
-Per giocare sul vostro computer al nostro gioco, fate un fork del progetto sulla vostra area personae;
-poi clonatelo sul vostro pc in una cartella a vostra scelta.
-Aprite il prompt dei comandi, selezionate il path del package e digitate 'uv run crimsonguard' per iniziare a giocare.
+### Personalizzazione Totale
+Rendete ogni partita unica modificando i **Settings**. Puoi affrontare un'invasione di slime o proteggerti con 20 sfere letali!
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a87a5fec-bfcb-4915-a8b1-257ed9d6a494" width="500" alt="Impostazioni Screen" />
+</p>
+
+---
+
+## 🚀 Come iniziare
+
+1. **Fork & Clone**: Fai un fork del progetto e clonalo sul tuo PC.
+2. **Navigazione**: Apri il prompt dei comandi e spostati nella cartella del progetto.
+3. **Avvio**: Digita il seguente comando per giocare:
+   ```bash
+   uv run crimsonguard
 
 ## Come contribuire
 Se volete partecipare anche voi allo sviluppo del gioco, fate un fork della repository, poi dopo aver apportato le modifiche inviate la pull request.  
