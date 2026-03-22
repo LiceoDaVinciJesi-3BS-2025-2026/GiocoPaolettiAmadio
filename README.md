@@ -104,19 +104,8 @@ Abbiamo così proceduto nello scriviere il codice del gioco:
     6. get_shrine_hp 
           
 - L.P. ha fatto le funzioni, con l'ausilio di Claude.ai e ChatGpt: 
-    1. di gestione del sistema orde, ovvero: 
-        a. spawn_one 
-        b. calcola_orda  
-        c. build_spawn_queue 
-    2. riguardo salvataggi, classifiche e settings: 
-        a. chiave_modalita 
-        b. salva_partita 
-        c. carica_classifica 
-        d. carica_top_classifica 
-        e. disegna_classifica 
-        f. disegna_istruzioni 
-        g. disegna_settings 
-
+    1. di gestione del sistema orde, ovvero: spawn_one, calcola_orda, build_spawn_queue 
+    2. riguardo salvataggi, classifiche e settings: chiave_modalita, salva_partita, carica_classifica, carica_top_classifica, disegna_classifica, disegna_istruzioni e disegna_settings 
 
 - S.A. si è occupato del comparto audio e del pygame.mixer supervisionando parte del suo codice con claude.ai 
 - L.P. ha programmato i pulsanti della UI nella home, le costanti iniziali, i settings 
