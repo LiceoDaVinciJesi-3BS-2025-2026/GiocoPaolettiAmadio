@@ -1,5 +1,7 @@
 # Crimson Guard
-<img width="1662" height="971" alt="homescreen" src="https://github.com/user-attachments/assets/c4a5effa-6475-4133-82ac-e98447ca17a2" />
+
+![202603221632 (1)](https://github.com/user-attachments/assets/8fa645e7-ea08-4f12-ac9d-fe467cd67a80)
+
 In questo gioco, impersonerete i panni di un samurai, con il compito di difendere il tempio al centro della mappa da orde di mostri.
 Correte, lanciate coltelli ed utilizzate le orb rotanti intorno a voi per uccidere i nemici, finché il tempio non è distrutto.
 <img width="1676" height="957" alt="gameplayscreen" src="https://github.com/user-attachments/assets/df9c25c8-f63d-4d1b-a30e-c131b8572896" />
@@ -36,8 +38,12 @@ Di seguito i link per i loro shops e per gli sprite da noi utilizzati:
 - [reqxel](https://reqxel.itch.io/)
 - [sprite del drago](https://reqxel.itch.io/monster-2d-32)
 
+Nella realizzazione del gioco, abbiamo utilizzato i seguenti software:
+- Thonny
+- Uv
+- CapCut
 
-Inoltre, nella realizzazione del gioco, abbiamo impiegato i seguenti strumenti di Intelligenza Artificiale:
+Inoltre, abbiamo impiegato i seguenti strumenti di Intelligenza Artificiale:
 - [Google Gemini](https://gemini.google.com)
 - [Claude.ai](https://claude.ai)
 - [Chatgpt](https://chatgpt.com/)
