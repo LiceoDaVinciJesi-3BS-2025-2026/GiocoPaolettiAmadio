@@ -81,51 +81,54 @@ Inoltre, abbiamo impiegato i seguenti strumenti di Intelligenza Artificiale:
 
 
 <hr>
-# Organizzazione del lavoro
-Abbiamo così proceduto nello scriviere il codice del gioco:
-  - S.A. ha generato e modificato le pixel art del samurai con AutoSprite e Ludo.ai
-  - L.P. ha generato l'immagine iniziale per lo sfondo dell'arena da Leonardo.ai
-  - S.A. ha poi rimodificato e raffinato l'immagine dello sfondo con Use.ai
-  - S.A. ha creato la schermata iniziale da Pixlr
-  - S.A. ha creato i vari stili del tempio con Use.ai e Artlist
-  - S.A. ha creato la musica e la GIF pubblicitaria del gioco in cima a questa pagina con Clideo e Deevid
-  - l'intestazione dei file è stata redatta da Amadio Sebastiano  
-  - gli import dei moduli python e le modifche da apportare al pyproject.toml sono stati eseguiti da Paoletti Leonardo
-  - S.A. ha fatto le seguenti funzioni, con l'ausilio dell'AI Google Gemini e Claude.ai:
-          1. load_frames 
-          2. rescale_frames 
-          3. get_samurai_frames 
-          4. get_samurai_hp 
-          5. make_knife_surface 
-          6. get_shrine_hp 
-          
-  - L.P. ha fatto le funzioni, con l'ausilio di Claude.ai e ChatGpt: 
-          1. di gestione del sistema orde, ovvero: 
-                  a. spawn_one 
-                  b. calcola_orda  
-                  c. build_spawn_queue 
-          2. riguardo salvataggi, classifiche e settings: 
-                  a. chiave_modalita 
-                  b. salva_partita 
-                  c. carica_classifica 
-                  d. carica_top_classifica 
-                  e. disegna_classifica 
-                  f. disegna_istruzioni 
-                  g. disegna_settings 
 
-  
-  - L.P. ha scaricato da itch.io gli sheet per i draghi, gli slime e i pulsanti UI 
-  - S.A. si è occupato del comparto audio e del pygame.mixer supervisionando parte del suo codice con claude.ai 
-  - L.P. ha programmato i pulsanti della UI nella home, le costanti iniziali, i settings 
-  - S.A. si è occupato del caricamento e del disegno dei frames del samurai, dello shrine, dello sfondo, della home, dei nemici 
-  - L.P. ha creato tutti font e le scritte del gioco, della home, del game_over e del post-game
-  - L.P., con la revisione di claude.ai, ha fatto la gestione degli input e degli eventi nella UI
-  - S.A. ha fatto il rettangolo d'avvio di start del gioco
-  - L.P si è occupato della gestione del tempo e dei frames con clock.tick
-  - S.A. con Claude.ai e ChatGpt ha programmato il movimento del personaggio giocante e l'attacco del lancio dei coltelli
-  - L.P. con Claude.ai ha fatto le orbs rotanti e il sistema di orde e la logica dei nemici
-  - L.P. con claude.ai ha scritto il codice per il game_over e per le schermate di inserimento del nickname e di classifica
-  - L.P. e S.A. hanno commentato le rispettive righe di codice scritte da ognuno
-  - L.P. ha scritto il file_resources per il caricamento dei file per i materiali di gioco
-  - S.A. e L.P. hanno collaborato insieme per redarre il ReadMe del progetto, prendendo livero spunto da esempi online
-  - S.A. e L.P. hanno scelto di comune accordo la License del gioco
+# Organizzazione del lavoro
+
+Abbiamo così proceduto nello scriviere il codice del gioco:
+
+- S.A. ha generato e modificato le pixel art del samurai con AutoSprite e Ludo.ai
+- L.P. ha scaricato da itch.io gli sheet per i draghi, gli slime e i pulsanti UI 
+- L.P. ha generato l'immagine iniziale per lo sfondo dell'arena da Leonardo.ai
+- S.A. ha poi rimodificato e raffinato l'immagine dello sfondo con Use.ai
+- S.A. ha creato la schermata iniziale da Pixlr
+- S.A. ha creato i vari stili del tempio con Use.ai e Artlist
+- S.A. ha creato la musica e la GIF pubblicitaria del gioco in cima a questa pagina con Clideo e Deevid
+- S.A  ha redatto l'intestazione dei file di gioco  
+- L.P. ha eseguito gli import dei moduli python e apportato le modifche necessarie al pyproject.toml
+- S.A. ha fatto le seguenti funzioni, con l'ausilio dell'AI Google Gemini e Claude.ai:
+    1. load_frames 
+    2. rescale_frames 
+    3. get_samurai_frames 
+    4. get_samurai_hp 
+    5. make_knife_surface 
+    6. get_shrine_hp 
+          
+- L.P. ha fatto le funzioni, con l'ausilio di Claude.ai e ChatGpt: 
+    1. di gestione del sistema orde, ovvero: 
+        a. spawn_one 
+        b. calcola_orda  
+        c. build_spawn_queue 
+    2. riguardo salvataggi, classifiche e settings: 
+        a. chiave_modalita 
+        b. salva_partita 
+        c. carica_classifica 
+        d. carica_top_classifica 
+        e. disegna_classifica 
+        f. disegna_istruzioni 
+        g. disegna_settings 
+
+
+- S.A. si è occupato del comparto audio e del pygame.mixer supervisionando parte del suo codice con claude.ai 
+- L.P. ha programmato i pulsanti della UI nella home, le costanti iniziali, i settings 
+- S.A. si è occupato del caricamento e del disegno dei frames del samurai, dello shrine, dello sfondo, della home, dei nemici 
+- L.P. ha creato tutti font e le scritte del gioco, della home, del game_over e del post-game
+- L.P., con la revisione di claude.ai, ha fatto la gestione degli input e degli eventi nella UI
+- S.A. ha fatto il rettangolo d'avvio di start del gioco
+- L.P si è occupato della gestione del tempo e dei frames con clock.tick
+- S.A. con Claude.ai e ChatGpt ha programmato il movimento del personaggio giocante e l'attacco del lancio dei coltelli
+- L.P. con Claude.ai ha fatto le orbs rotanti e il sistema di orde e la logica dei nemici
+- L.P. con claude.ai ha scritto il codice per il game_over e per le schermate di inserimento del nickname e di classifica
+- L.P. e S.A. hanno commentato le rispettive righe di codice scritte da ognuno
+- L.P. ha scritto il file_resources per il caricamento dei file per i materiali di gioco
+- S.A. e L.P. hanno collaborato insieme per redarre il ReadMe del progetto, prendendo livero spunto da esempi online
+- S.A. e L.P. hanno scelto di comune accordo la License del gioco
