@@ -4,11 +4,11 @@
 
 In questo gioco, impersonerete i panni di un samurai, con il compito di difendere il tempio al centro della mappa da orde di mostri.
 Correte, lanciate coltelli ed utilizzate le orb rotanti intorno a voi per uccidere i nemici, finché il tempio non è distrutto.
-<img width="1676" height="957" alt="gameplayscreen" src="https://github.com/user-attachments/assets/df9c25c8-f63d-4d1b-a30e-c131b8572896" />
+<img width="838" height="478" alt="gameplayscreen" src="https://github.com/user-attachments/assets/df9c25c8-f63d-4d1b-a30e-c131b8572896" />
 Sfidatevi a battere i vostri stessi record, a uccidere più mostri, a lanciare meno coltelli ecc. La classifica vi mostrerà tutta la vostra storia di partite.
-<img width="1670" height="953" alt="classificascreen" src="https://github.com/user-attachments/assets/f30140ad-dea5-409a-a024-237dab7ad226" />
+<img width="835" height="478" alt="classificascreen" src="https://github.com/user-attachments/assets/f30140ad-dea5-409a-a024-237dab7ad226" />
 Rendete ogni game unico e irripetibile: personalzizate le impostazioni a vostro piacimento, variando i valori dei vari settings. Puoi giocare solo contro degli slime, oppure avere 20 sfere letali roteanti intorno a te. Divertitevi a sperimentare e a creare gli scenari più bizzarri.
-<img width="1675" height="967" alt="impostazioniscreen" src="https://github.com/user-attachments/assets/8950c226-3a66-42b1-a2a0-cf43bf8520f7" />
+<img width="838" height="484" alt="impostazioniscreen" src="https://github.com/user-attachments/assets/8950c226-3a66-42b1-a2a0-cf43bf8520f7" />
 
 
 
