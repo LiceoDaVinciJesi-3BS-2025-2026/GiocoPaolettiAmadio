@@ -81,7 +81,7 @@ Inoltre, abbiamo impiegato i seguenti strumenti di Intelligenza Artificiale:
 
 
 <hr>
-#Organizzazione del lavoro
+# Organizzazione del lavoro
 Abbiamo così proceduto nello scriviere il codice del gioco:
   - S.A. ha generato e modificato le pixel art del samurai con AutoSprite e Ludo.ai
   - L.P. ha generato l'immagine iniziale per lo sfondo dell'arena da Leonardo.ai
@@ -92,32 +92,32 @@ Abbiamo così proceduto nello scriviere il codice del gioco:
   - l'intestazione dei file è stata redatta da Amadio Sebastiano  
   - gli import dei moduli python e le modifche da apportare al pyproject.toml sono stati eseguiti da Paoletti Leonardo
   - S.A. ha fatto le seguenti funzioni, con l'ausilio dell'AI Google Gemini e Claude.ai:
-          1. load_frames
-          2. rescale_frames
-          3. get_samurai_frames
-          4. get_samurai_hp
-          5. make_knife_surface
-          6. get_shrine_hp
+          1. load_frames 
+          2. rescale_frames 
+          3. get_samurai_frames 
+          4. get_samurai_hp 
+          5. make_knife_surface 
+          6. get_shrine_hp 
           
-  - L.P. ha fatto le funzioni, con l'ausilio di Claude.ai e ChatGpt:
-          1. di gestione del sistema orde, ovvero:
-                  a. spawn_one
-                  b. calcola_orda 
-                  c. build_spawn_queue
-          2. riguardo salvataggi, classifiche e settings:
-                  a. chiave_modalita
-                  b. salva_partita
-                  c. carica_classifica
-                  d. carica_top_classifica
-                  e. disegna_classifica
-                  f. disegna_istruzioni
-                  g. disegna_settings
+  - L.P. ha fatto le funzioni, con l'ausilio di Claude.ai e ChatGpt: 
+          1. di gestione del sistema orde, ovvero: 
+                  a. spawn_one 
+                  b. calcola_orda  
+                  c. build_spawn_queue 
+          2. riguardo salvataggi, classifiche e settings: 
+                  a. chiave_modalita 
+                  b. salva_partita 
+                  c. carica_classifica 
+                  d. carica_top_classifica 
+                  e. disegna_classifica 
+                  f. disegna_istruzioni 
+                  g. disegna_settings 
 
   
-  - L.P. ha scaricato da itch.io gli sheet per i draghi, gli slime e i pulsanti UI
-  - S.A. si è occupato del comparto audio e del pygame.mixer supervisionando parte del suo codice con claude.ai
-  - L.P. ha programmato i pulsanti della UI nella home, le costanti iniziali, i settings
-  - S.A. si è occupato del caricamento e del disegno dei frames del samurai, dello shrine, dello sfondo, della home, dei nemici
+  - L.P. ha scaricato da itch.io gli sheet per i draghi, gli slime e i pulsanti UI 
+  - S.A. si è occupato del comparto audio e del pygame.mixer supervisionando parte del suo codice con claude.ai 
+  - L.P. ha programmato i pulsanti della UI nella home, le costanti iniziali, i settings 
+  - S.A. si è occupato del caricamento e del disegno dei frames del samurai, dello shrine, dello sfondo, della home, dei nemici 
   - L.P. ha creato tutti font e le scritte del gioco, della home, del game_over e del post-game
   - L.P., con la revisione di claude.ai, ha fatto la gestione degli input e degli eventi nella UI
   - S.A. ha fatto il rettangolo d'avvio di start del gioco
