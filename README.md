@@ -15,7 +15,16 @@ Creatori del gioco: L. Paoletti, A. Sebastiano
 Collaboratore/rifinitore/direttore/capo supremo: A. Diamantini
 
 In aggiunta, ringraziamo anche Reqxel e Elthen's Pixel Art Shop da itch.io per i loro magnifici asset gratuiti dei mostri.
-Di seguito i link per i loro shops e per gli sprite da npoi utilizzati
+Di seguito i link per i loro shops e per gli sprite da noi utilizzati
+[elthen shop](https://elthen.itch.io)
+[reqxel](https://reqxel.itch.io/)
+
+[sprite del drago](https://reqxel.itch.io/monster-2d-32)
+[sprite degli slime](https://elthen.itch.io/2d-pixel-art-small-slime-sprites)
+
+
+Inoltre, nella realizzazione del gioco, abbiamo impiegato i seguenti strumenti di Intelligenza Artificiale:
+
 
 
 ## Licenze
