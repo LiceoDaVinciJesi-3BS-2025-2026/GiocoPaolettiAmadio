@@ -125,6 +125,7 @@ Abbiamo così proceduto nello scriviere il codice del gioco:
   - S.A. con Claude.ai e ChatGpt ha programmato il movimento del personaggio giocante e l'attacco del lancio dei coltelli
   - L.P. con Claude.ai ha fatto le orbs rotanti e il sistema di orde e la logica dei nemici
   - L.P. con claude.ai ha scritto il codice per il game_over e per le schermate di inserimento del nickname e di classifica
+  - L.P. e S.A. hanno commentato le rispettive righe di codice scritte da ognuno
   - L.P. ha scritto il file_resources per il caricamento dei file per i materiali di gioco
   - S.A. e L.P. hanno collaborato insieme per redarre il ReadMe del progetto, prendendo livero spunto da esempi online
   - S.A. e L.P. hanno scelto di comune accordo la License del gioco
