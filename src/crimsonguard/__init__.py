@@ -1164,6 +1164,11 @@ def main() -> None:
                                     # la prob dei draghi può esser nulla(solo slime)
                                     # round evita errori di rappresentazione decimale (numero massimo dicifre dopo la virgola)
                                     settings[i] = round(max(0, settings[i] - step), 2)
+                                if i == 6:
+                                     # per il numero di orb, il valore minimo è 0
+                                     settings[i] = round(
+                                        max(0, settings[i] - step), 2
+                                    )
                                 else:
                                     # per il resto, il valore minimo è lo step
                                     # round evita errori di rappresentazione decimale
