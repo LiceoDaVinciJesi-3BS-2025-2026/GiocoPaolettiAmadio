@@ -51,7 +51,7 @@ In ogni caso, per contattarci scrivete ai seguenti indirizzi email:
 Creatori del gioco: L. Paoletti, A. Sebastiano  
 Collaboratore/rifinitore/direttore/capo supremo: A. Diamantini
 
-In aggiunta, ringraziamo anche Reqxel, Elthen's Pixel Art Shop e TotusLotus da itch.io per i loro magnifici asset gratuiti dei mostri.
+In aggiunta, ringraziamo anche Reqxel, Elthen's Pixel Art Shop e TotusLotus da itch.io per i loro magnifici asset gratuiti da noi impiegati.
 Di seguito i link per i loro shops e per gli sprite da noi utilizzati:
 - [elthen shop](https://elthen.itch.io)
 - [sprite degli slime](https://elthen.itch.io/2d-pixel-art-small-slime-sprites)
@@ -119,5 +119,5 @@ Abbiamo così proceduto nello scriviere il codice del gioco:
 - L.P. con claude.ai ha scritto il codice per il game_over e per le schermate di inserimento del nickname e di classifica
 - L.P. e S.A. hanno commentato le rispettive righe di codice scritte da ognuno
 - L.P. ha scritto il file_resources per il caricamento dei file per i materiali di gioco
-- S.A. e L.P. hanno collaborato insieme per redarre il ReadMe del progetto, prendendo livero spunto da esempi online
+- S.A. e L.P. hanno collaborato insieme per redarre il ReadMe del progetto, prendendo libero spunto da esempi online
 - S.A. e L.P. hanno scelto di comune accordo la License del gioco
