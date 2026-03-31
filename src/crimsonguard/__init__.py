@@ -25,7 +25,7 @@ from importlib.resources import files
 import pygame
 from platformdirs import PlatformDirs
 
-from .resources import get_image, get_sound
+from crimsonguard.resources import get_image, get_sound
 
 # --- FUNZIONI DI SUPPORTO ---
 def load_frames(sheet, ROWS, COLS, FRAME_SIZE_W, FRAME_SIZE_H=None):
@@ -853,7 +853,7 @@ def main() -> None:
     clock = pygame.time.Clock()  #  per limitare gli FPS e misurare il tempo trascorso
 
     # ================== SCHERMATA INIZIALE (caricata una volta sola) ==================
-    start_screen_img = pygame.image.load(get_image("schermataI.png")).convert_alpha()
+    start_screen_img = pygame.image.load( get_image("schermataIniziale.png") ).convert_alpha()
     start_screen_img = pygame.transform.scale(start_screen_img, (SCREEN_W, SCREEN_H))
     # Rettangolo clickable per il pulsante "Start": definisce l'area sensibile al click
     START_BUTTON_RECT = pygame.Rect(522, 600, 300, 90)
