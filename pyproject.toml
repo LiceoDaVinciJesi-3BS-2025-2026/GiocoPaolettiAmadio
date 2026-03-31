@@ -1,7 +1,7 @@
 [project]
 name = "crimosonguard"
 version = "0.1.0"
-description = "Add your description here"
+description = "Gioco in 2d in cui sarete un samurai a difesa di un tempio: correte, lanciate coltelli e abbattete orde di mostri una dopo l'altra prima che arrivino a distruggere il tempio al centro della mappa. By L. Paoletti e S. Amadio"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
