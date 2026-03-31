@@ -1,5 +1,5 @@
 [project]
-name = "crimosonguard"
+name = "crimsonguard"
 version = "0.1.0"
 description = "Gioco in 2d in cui sarete un samurai a difesa di un tempio: correte, lanciate coltelli e abbattete orde di mostri una dopo l'altra prima che arrivino a distruggere il tempio al centro della mappa. By L. Paoletti e S. Amadio"
 readme = "README.md"
@@ -18,3 +18,8 @@ packages = ["src/crimsonguard"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.19.0",
+]
